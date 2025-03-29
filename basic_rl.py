@@ -1,77 +1,103 @@
-import numpy as np
+import pygame
 import random
 
-# 🌍 KÖRNYEZET DEFINIÁLÁSA
-grid_size = 5  # 5x5-ös mátrix
-start = (0, 0)  # Kiindulópont
-goal = (4, 4)   # Cél
-obstacles = [(1, 1), (2, 2), (4, 1)]  # Akadályok
+# Constants
+WIDTH, HEIGHT = 800, 600
+TILE_SIZE = 50
+ROWS, COLS = HEIGHT // TILE_SIZE, WIDTH // TILE_SIZE
+WHITE, BLACK, RED, GREEN, BLUE = (255,255,255), (0,0,0), (255,0,0), (0,255,0), (0,0,255)
 
-# 📌 Állapotok és akciók
-actions = ["up", "down", "left", "right"]
-q_table = np.zeros((grid_size, grid_size, len(actions)))  # Q-tábla inicializálása
+# Pygame setup
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Strategy Game")
+clock = pygame.time.Clock()
 
-# Map to print
-def print_map():
-    for i in range(grid_size):
-        for j in range(grid_size):
-            if (i, j) == start:
-                print("🟢", end=" ")
-            elif (i, j) == goal:
-                print("🔵", end=" ")
-            elif (i, j) in obstacles:
-                print("⚫️", end=" ")
-            else:
-                print("⚪️", end=" ")
-        print()
+class Unit:
+    def __init__(self, x, y, health, attack, move_range, color):
+        self.x, self.y = x, y
+        self.health, self.attack, self.move_range = health, attack, move_range
+        self.color = color
 
-# 🎯 Jutalmazási rendszer
-def get_reward(state):
-    if state == goal:
-        return 10  # Nagy jutalom, ha elérte a célt
-    elif state in obstacles:
-        return -10  # Büntetés, ha akadályba ütközik
-    else:
-        return -1  # Kis negatív jutalom (hogy ösztönözze a gyors mozgást)
+    def move(self, dx, dy):
+        new_x, new_y = self.x + dx, self.y + dy
+        if 0 <= new_x < COLS and 0 <= new_y < ROWS:
+            self.x, self.y = new_x, new_y
 
-# 🔄 Akciók végrehajtása
-def take_action(state, action):
-    x, y = state
-    if action == "up":
-        x = max(0, x - 1)
-    elif action == "down":
-        x = min(grid_size - 1, x + 1)
-    elif action == "left":
-        y = max(0, y - 1)
-    elif action == "right":
-        y = min(grid_size - 1, y + 1)
-    return (x, y)
+    def attack_enemy(self, enemy):
+        enemy.health -= self.attack
+        if enemy.health <= 0:
+            return True  # Enemy defeated
+        return False
 
-# 🏆 Q-learning algoritmus
-alpha = 0.1  # Tanulási ráta
-gamma = 0.9  # Jövőbeli jutalom fontossága
-epsilon = 0.1  # Véletlenszerű felfedezés aránya
+    def draw(self):
+        pygame.draw.rect(screen, self.color, (self.x * TILE_SIZE, self.y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+        pygame.draw.rect(screen, WHITE, (self.x * TILE_SIZE, self.y * TILE_SIZE, TILE_SIZE, TILE_SIZE), 2)
 
-for episode in range(1000):  # 1000 tanítási epizód
-    state = start
-    while state != goal:
-        if random.uniform(0, 1) < epsilon:
-            action = random.choice(actions)  # Véletlenszerű akció (felfedezés)
-        else:
-            action = actions[np.argmax(q_table[state[0], state[1]])]  # Legjobb ismert akció
+# AI decision-making: move towards the closest player unit
+class AI:
+    def take_turn(self, ai_units, player_units):
+        for unit in ai_units:
+            if player_units:
+                target = min(player_units, key=lambda p: abs(p.x - unit.x) + abs(p.y - unit.y))
+                dx, dy = 0, 0
+                if unit.x < target.x:
+                    dx = 1
+                elif unit.x > target.x:
+                    dx = -1
+                if unit.y < target.y:
+                    dy = 1
+                elif unit.y > target.y:
+                    dy = -1
+                unit.move(dx, dy)
+                if unit.x == target.x and unit.y == target.y:
+                    if unit.attack_enemy(target):
+                        player_units.remove(target)  # Remove defeated player unit
 
-        new_state = take_action(state, action)
-        reward = get_reward(new_state)
+# Initialize units
+player_units = [Unit(2, 2, 10, 3, 2, GREEN), Unit(3, 3, 10, 2, 2, GREEN)]
+ai_units = [Unit(10, 2, 8, 2, 2, RED), Unit(10, 4, 8, 2, 2, RED)]
+ai = AI()
 
-        # 📌 Q-tábla frissítése (Q-learning szabály)
-        q_table[state[0], state[1], actions.index(action)] = (
-            (1 - alpha) * q_table[state[0], state[1], actions.index(action)]
-            + alpha * (reward + gamma * np.max(q_table[new_state[0], new_state[1]]))
-        )
+running, player_turn = True, True
+selected_unit = None
 
-        state = new_state  # Lépjünk az új állapotba
+while running:
+    screen.fill(BLACK)
+    for row in range(ROWS):
+        for col in range(COLS):
+            pygame.draw.rect(screen, WHITE, (col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE), 1)
+    
+    for unit in player_units + ai_units:
+        unit.draw()
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN and player_turn:
+            mx, my = pygame.mouse.get_pos()
+            tx, ty = mx // TILE_SIZE, my // TILE_SIZE
+            for unit in player_units:
+                if unit.x == tx and unit.y == ty:
+                    selected_unit = unit
+        elif event.type == pygame.KEYDOWN and selected_unit and player_turn:
+            moves = {pygame.K_w: (0, -1), pygame.K_s: (0, 1), pygame.K_a: (-1, 0), pygame.K_d: (1, 0)}
+            if event.key in moves:
+                dx, dy = moves[event.key]
+                selected_unit.move(dx, dy)
+            elif event.key == pygame.K_SPACE:
+                for enemy in ai_units:
+                    if selected_unit.x == enemy.x and selected_unit.y == enemy.y:
+                        if selected_unit.attack_enemy(enemy):
+                            ai_units.remove(enemy)  # Remove dead AI unit
+            player_turn = False  # End player's turn
+    
+    if not player_turn:
+        pygame.time.delay(500)
+        ai.take_turn(ai_units, player_units)
+        player_turn = True
+    
+    pygame.display.flip()
+    clock.tick(30)
 
-# 📌 Kiíratjuk a tanult Q-táblát
-print("Tanult Q-tábla:")
-print_map()
-print(q_table)
+pygame.quit()
