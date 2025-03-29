@@ -18,6 +18,9 @@ RED = (200, 0, 0)
 BLUE = (0, 0, 200)
 BLACK = (0, 0, 0)
 
+font = pygame.font.Font(None, 24)  # Font for attack messages
+attack_messages = []  # Stores attack messages to be displayed
+
 # --- Helper Functions ---
 def pixel_to_grid(px, py):
     """ Convert pixel coordinates to grid coordinates. """
@@ -37,7 +40,7 @@ class Unit:
         self.health = 10  # Default health
         self.attack_power = 3
         self.move_range = 2  # Number of cells it can move
-    
+
     def move(self, new_x, new_y):
         """ Move unit to a new grid location if within move range. """
         if abs(self.x - new_x) + abs(self.y - new_y) <= self.move_range:
@@ -46,7 +49,9 @@ class Unit:
     def attack(self, target):
         """ Attack another unit, reducing its health. """
         target.health -= self.attack_power
+        attack_messages.append(f"{self.name} attacked {target.name}! {target.name} HP: {target.health}")
         if target.health <= 0:
+            attack_messages.append(f"{target.name} was defeated!")
             return True  # Target is defeated
         return False
 
@@ -56,6 +61,9 @@ class Unit:
         color = BLUE if self.team == 1 else RED
         pygame.draw.circle(screen, color, (px + CELL_SIZE // 2, py + CELL_SIZE // 2), CELL_SIZE // 3)
 
+        # Display unit health
+        health_text = font.render(str(self.health), True, BLACK)
+        screen.blit(health_text, (px + CELL_SIZE // 2 - 8, py + CELL_SIZE // 2 - 25))
 
 # --- AI Class ---
 class AI:
@@ -63,12 +71,12 @@ class AI:
         """ AI moves towards the nearest player unit and attacks if possible. """
         ai_units = [unit for unit in units if unit.team == 2]
         player_units = [unit for unit in units if unit.team == 1]
-        
+
         for unit in ai_units:
             if player_units:
                 # Find the closest player unit
                 target = min(player_units, key=lambda p: abs(p.x - unit.x) + abs(p.y - unit.y))
-                
+
                 # Determine movement direction
                 dx, dy = 0, 0
                 if unit.x < target.x:
@@ -87,7 +95,6 @@ class AI:
                     # Attack if adjacent
                     if unit.attack(target):
                         units.remove(target)  # Remove defeated player unit
-
 
 # --- Game Board ---
 class GridBoard:
@@ -133,10 +140,20 @@ enemy_bot = AI()
 running = True
 selected_unit = None
 player_turn = True
+message_timer = 0
 
 while running:
     screen.fill(WHITE)
     board.draw(screen)
+
+    # Display attack messages
+    if attack_messages:
+        message_surface = font.render(attack_messages[0], True, BLACK)
+        screen.blit(message_surface, (10, SCREEN_HEIGHT - 30))
+        message_timer += 1
+        if message_timer > 60:  # Message disappears after 60 frames (~2 seconds)
+            attack_messages.pop(0)
+            message_timer = 0
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
