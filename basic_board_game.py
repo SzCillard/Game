@@ -1,5 +1,6 @@
 import pygame
 import time
+from abc import ABC, abstractmethod  # Import ABC module
 
 # --- Pygame Initialization ---
 pygame.init()
@@ -26,101 +27,158 @@ font = pygame.font.Font(None, 30)
 # --- Message System ---
 messages = []
 
+
 def add_message(text):
-    """ Add a message with a timestamp. """
     messages.append((text, time.time()))
 
+
 def draw_messages():
-    """ Display messages at the bottom of the screen. """
     y_offset = SCREEN_HEIGHT - 30
     current_time = time.time()
+    messages[:] = [
+        (msg, timestamp) for msg, timestamp in messages if current_time - timestamp < 3
+    ]
 
-    # Remove old messages (older than 3 seconds)
-    messages[:] = [(msg, timestamp) for msg, timestamp in messages if current_time - timestamp < 3]
-
-    for msg, _ in reversed(messages):  # Show latest messages at the bottom
+    for msg, _ in reversed(messages):
         text_surface = font.render(msg, True, BLACK)
         screen.blit(text_surface, (10, y_offset))
         y_offset -= 25
+
 
 # --- Helper Functions ---
 def pixel_to_grid(px, py):
     return px // CELL_SIZE, py // CELL_SIZE
 
+
 def grid_to_pixel(x, y):
     return x * CELL_SIZE, y * CELL_SIZE
 
-# --- Unit Class ---
-class Unit:
-    def __init__(self, name, x, y, team):
+
+def distance(x1, y1, x2, y2):
+    return abs(x1 - x2) + abs(y1 - y2)
+
+
+# --- Abstract Unit Class ---
+class Unit(ABC):
+    def __init__(
+        self, name, x, y, team, health, attack_power, attack_range, move_range
+    ):
         self.name = name
         self.x = x
         self.y = y
-        self.team = team  # 1 = Player, 2 = AI
-        self.health = 10
-        self.attack_power = 3
-        self.move_range = 2
-        self.has_acted = False  # Track if unit has moved/attacked this turn
+        self.team = team
+        self.health = health
+        self.attack_power = attack_power
+        self.attack_range = attack_range
+        self.move_range = move_range
+        self.has_acted = False
 
+    @abstractmethod
     def move(self, new_x, new_y, units):
-        """ Move unit to a new grid location if within range and not occupied. """
-        if abs(self.x - new_x) + abs(self.y - new_y) <= self.move_range:
-            if any(unit.x == new_x and unit.y == new_y for unit in units):
-                add_message(f"{self.name} cannot move, tile occupied!")
-                return  
+        pass
 
-            self.x, self.y = new_x, new_y
-            self.has_acted = True
-
+    @abstractmethod
     def attack(self, target):
-        """ Attack another unit, reducing its health. """
-        target.health -= self.attack_power
-        add_message(f"{self.name} attacked {target.name}, -{self.attack_power} HP!")
-        self.has_acted = True
-
-        if target.health <= 0:
-            add_message(f"{target.name} was defeated!")
-            return True  # Target is defeated
-        return False
+        pass
 
     def draw(self, screen):
-        """ Draw the unit with its health. """
         px, py = grid_to_pixel(self.x, self.y)
         color = BLUE if self.team == 1 else RED
-        pygame.draw.circle(screen, color, (px + CELL_SIZE // 2, py + CELL_SIZE // 2), CELL_SIZE // 3)
+        pygame.draw.circle(
+            screen, color, (px + CELL_SIZE // 2, py + CELL_SIZE // 2), CELL_SIZE // 3
+        )
 
         # Health display
         health_text = font.render(str(self.health), True, BLACK)
         screen.blit(health_text, (px + CELL_SIZE // 4, py + CELL_SIZE // 4))
 
+
+# --- Soldier Classes ---
+class Infantry(Unit):
+    def __init__(self, x, y, team):
+        super().__init__(
+            "Infantry",
+            x,
+            y,
+            team,
+            health=12,
+            attack_power=4,
+            attack_range=1,
+            move_range=2,
+        )
+
+    def move(self, new_x, new_y, units):
+        if distance(self.x, self.y, new_x, new_y) <= self.move_range:
+            if any(unit.x == new_x and unit.y == new_y for unit in units):
+                add_message(f"{self.name} cannot move, tile occupied!")
+                return
+            self.x, self.y = new_x, new_y
+            self.has_acted = True
+        else:
+            add_message(f"{self.name} can't move that far!")
+
+    def attack(self, target):
+        if distance(self.x, self.y, target.x, target.y) <= self.attack_range:
+            target.health -= self.attack_power
+            add_message(f"{self.name} attacked {target.name}, -{self.attack_power} HP!")
+            self.has_acted = True
+            if target.health <= 0:
+                add_message(f"{target.name} was defeated!")
+                return True
+        else:
+            add_message(f"{self.name} is too far to attack!")
+        return False
+
+
+class Archer(Unit):
+    def __init__(self, x, y, team):
+        super().__init__(
+            "Archer", x, y, team, health=8, attack_power=5, attack_range=3, move_range=3
+        )
+
+    def move(self, new_x, new_y, units):
+        if distance(self.x, self.y, new_x, new_y) <= self.move_range:
+            if any(unit.x == new_x and unit.y == new_y for unit in units):
+                add_message(f"{self.name} cannot move, tile occupied!")
+                return
+            self.x, self.y = new_x, new_y
+            self.has_acted = True
+        else:
+            add_message(f"{self.name} can't move that far!")
+
+    def attack(self, target):
+        if distance(self.x, self.y, target.x, target.y) <= self.attack_range:
+            target.health -= self.attack_power
+            add_message(f"{self.name} shot {target.name}, -{self.attack_power} HP!")
+            self.has_acted = True
+            if target.health <= 0:
+                add_message(f"{target.name} was defeated!")
+                return True
+        else:
+            add_message(f"{self.name} is too far to attack!")
+        return False
+
+
 # --- AI Class ---
 class AI:
     def take_turn(self, units):
-        """ AI moves towards the nearest player unit and attacks if possible. """
         ai_units = [unit for unit in units if unit.team == 2]
         player_units = [unit for unit in units if unit.team == 1]
 
-        if not player_units:  
-            return  # No player units left, AI does nothing
+        if not player_units:
+            return
 
         for unit in ai_units:
-            target = min(player_units, key=lambda p: abs(p.x - unit.x) + abs(p.y - unit.y))
+            target = min(player_units, key=lambda p: distance(unit.x, unit.y, p.x, p.y))
 
-            dx, dy = 0, 0
-            if unit.x < target.x:
-                dx = 1
-            elif unit.x > target.x:
-                dx = -1
-            if unit.y < target.y:
-                dy = 1
-            elif unit.y > target.y:
-                dy = -1
-
-            if abs(unit.x - target.x) + abs(unit.y - target.y) > 1:
+            if distance(unit.x, unit.y, target.x, target.y) > unit.attack_range:
+                dx = 1 if unit.x < target.x else -1 if unit.x > target.x else 0
+                dy = 1 if unit.y < target.y else -1 if unit.y > target.y else 0
                 unit.move(unit.x + dx, unit.y + dy, units)
             else:
                 if unit.attack(target):
                     units.remove(target)
+
 
 # --- Game Board ---
 class GridBoard:
@@ -141,28 +199,20 @@ class GridBoard:
     def draw(self, screen):
         screen.fill(WHITE)
 
-        # Draw grid
         for x in range(self.width):
             for y in range(self.height):
                 px, py = grid_to_pixel(x, y)
                 pygame.draw.rect(screen, GREEN, (px, py, CELL_SIZE, CELL_SIZE), 2)
 
-        # Draw units
         for unit in self.units:
             unit.draw(screen)
+
 
 # --- Game Initialization ---
 board = GridBoard(GRID_WIDTH, GRID_HEIGHT)
 
-# Adding multiple units for player and AI
-player_units = [
-    Unit("Swordsman", 2, 2, team=1),
-    Unit("Archer", 3, 3, team=1),
-]
-ai_units = [
-    Unit("Spearman", 7, 7, team=2),
-    Unit("Knight", 6, 6, team=2),
-]
+player_units = [Infantry(2, 2, 1), Archer(3, 3, 1)]
+ai_units = [Infantry(7, 7, 2), Archer(6, 6, 2)]
 
 for unit in player_units + ai_units:
     board.add_unit(unit)
@@ -187,27 +237,25 @@ while running:
             x, y = pixel_to_grid(px, py)
 
             unit = board.get_unit_at(x, y)
-            if unit and unit.team == 1 and not unit.has_acted:  # Select only if unit hasn't moved yet
+            if unit and unit.team == 1 and not unit.has_acted:
                 selected_unit = unit
-            elif selected_unit and not unit:  # Move
+            elif selected_unit and not unit:
                 selected_unit.move(x, y, board.units)
                 selected_unit = None
-            elif selected_unit and unit and unit.team == 2:  # Attack
+            elif selected_unit and unit and unit.team == 2:
                 if selected_unit.attack(unit):
                     board.units.remove(unit)
                 selected_unit = None
 
-    # **End Turn Only After All Player Units Have Acted**
     if player_turn and all(unit.has_acted for unit in player_units):
         pygame.time.delay(500)
         enemy_bot.take_turn(board.units)
 
-        # Reset all player units for next turn
         for unit in player_units:
             unit.has_acted = False
-        
-        player_turn = True
 
+        player_turn = True
+        add_message("Player's turn!")
     pygame.display.flip()
 
 pygame.quit()
