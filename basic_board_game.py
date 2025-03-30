@@ -1,4 +1,5 @@
 import pygame
+import time
 
 # --- Pygame Initialization ---
 pygame.init()
@@ -6,7 +7,7 @@ pygame.init()
 # --- Constants ---
 GRID_WIDTH = 10
 GRID_HEIGHT = 10
-CELL_SIZE = 50  # Size of a single grid cell
+CELL_SIZE = 50
 SCREEN_WIDTH = GRID_WIDTH * CELL_SIZE
 SCREEN_HEIGHT = GRID_HEIGHT * CELL_SIZE
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -18,66 +19,83 @@ RED = (200, 0, 0)
 BLUE = (0, 0, 200)
 BLACK = (0, 0, 0)
 
-font = pygame.font.Font(None, 24)  # Font for attack messages
-attack_messages = []  # Stores attack messages to be displayed
+# --- Pygame Font ---
+pygame.font.init()
+font = pygame.font.Font(None, 30)
+
+# --- Message System ---
+messages = []  # Stores (text, timestamp)
+
+def add_message(text):
+    """ Add a message with a timestamp. """
+    messages.append((text, time.time()))
+
+def draw_messages():
+    """ Display messages at the bottom of the screen. """
+    y_offset = SCREEN_HEIGHT - 30  # Start from bottom
+    current_time = time.time()
+
+    # Remove old messages (older than 3 seconds)
+    messages[:] = [(msg, timestamp) for msg, timestamp in messages if current_time - timestamp < 3]
+
+    for msg, _ in reversed(messages):  # Show latest messages at the bottom
+        text_surface = font.render(msg, True, BLACK)
+        screen.blit(text_surface, (10, y_offset))
+        y_offset -= 25  # Move up for the next message
+
 
 # --- Helper Functions ---
 def pixel_to_grid(px, py):
-    """ Convert pixel coordinates to grid coordinates. """
     return px // CELL_SIZE, py // CELL_SIZE
 
 def grid_to_pixel(x, y):
-    """ Convert grid coordinates to pixel coordinates. """
     return x * CELL_SIZE, y * CELL_SIZE
 
 # --- Unit Class ---
 class Unit:
     def __init__(self, name, x, y, team):
         self.name = name
-        self.x = x  # Grid coordinate
+        self.x = x
         self.y = y
         self.team = team  # 1 = Player, 2 = AI
-        self.health = 10  # Default health
+        self.health = 10
         self.attack_power = 3
-        self.move_range = 2  # Number of cells it can move
-
+        self.move_range = 2
+    
     def move(self, new_x, new_y):
-        """ Move unit to a new grid location if within move range. """
         if abs(self.x - new_x) + abs(self.y - new_y) <= self.move_range:
             self.x, self.y = new_x, new_y
 
     def attack(self, target):
-        """ Attack another unit, reducing its health. """
         target.health -= self.attack_power
-        attack_messages.append(f"{self.name} attacked {target.name}! {target.name} HP: {target.health}")
+        message = f"{self.name} attacked {target.name}, -{self.attack_power} HP!"
+        add_message(message)
+
         if target.health <= 0:
-            attack_messages.append(f"{target.name} was defeated!")
+            add_message(f"{target.name} was defeated!")
             return True  # Target is defeated
         return False
 
     def draw(self, screen):
-        """ Draw unit on screen. """
         px, py = grid_to_pixel(self.x, self.y)
         color = BLUE if self.team == 1 else RED
         pygame.draw.circle(screen, color, (px + CELL_SIZE // 2, py + CELL_SIZE // 2), CELL_SIZE // 3)
 
-        # Display unit health
+        # Health display
         health_text = font.render(str(self.health), True, BLACK)
-        screen.blit(health_text, (px + CELL_SIZE // 2 - 8, py + CELL_SIZE // 2 - 25))
+        screen.blit(health_text, (px + CELL_SIZE // 4, py + CELL_SIZE // 4))
+
 
 # --- AI Class ---
 class AI:
     def take_turn(self, units):
-        """ AI moves towards the nearest player unit and attacks if possible. """
         ai_units = [unit for unit in units if unit.team == 2]
         player_units = [unit for unit in units if unit.team == 1]
 
         for unit in ai_units:
             if player_units:
-                # Find the closest player unit
                 target = min(player_units, key=lambda p: abs(p.x - unit.x) + abs(p.y - unit.y))
 
-                # Determine movement direction
                 dx, dy = 0, 0
                 if unit.x < target.x:
                     dx = 1
@@ -88,45 +106,42 @@ class AI:
                 elif unit.y > target.y:
                     dy = -1
 
-                # Move towards the target
                 if abs(unit.x - target.x) + abs(unit.y - target.y) > 1:
                     unit.move(unit.x + dx, unit.y + dy)
                 else:
-                    # Attack if adjacent
                     if unit.attack(target):
                         units.remove(target)  # Remove defeated player unit
+
 
 # --- Game Board ---
 class GridBoard:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.units = []  # List of units
-    
+        self.units = []
+
     def add_unit(self, unit):
-        """ Add a unit to the board. """
         self.units.append(unit)
 
     def get_unit_at(self, x, y):
-        """ Return the unit at given grid coordinates, or None. """
         for unit in self.units:
             if unit.x == x and unit.y == y:
                 return unit
         return None
 
     def draw(self, screen):
-        """ Draw the grid and units. """
         screen.fill(WHITE)
-        
-        # Draw the grid
+
+        # Draw grid
         for x in range(self.width):
             for y in range(self.height):
                 px, py = grid_to_pixel(x, y)
                 pygame.draw.rect(screen, GREEN, (px, py, CELL_SIZE, CELL_SIZE), 2)
 
-        # Draw the units
+        # Draw units
         for unit in self.units:
             unit.draw(screen)
+
 
 # --- Game Initialization ---
 board = GridBoard(GRID_WIDTH, GRID_HEIGHT)
@@ -140,20 +155,11 @@ enemy_bot = AI()
 running = True
 selected_unit = None
 player_turn = True
-message_timer = 0
 
 while running:
     screen.fill(WHITE)
     board.draw(screen)
-
-    # Display attack messages
-    if attack_messages:
-        message_surface = font.render(attack_messages[0], True, BLACK)
-        screen.blit(message_surface, (10, SCREEN_HEIGHT - 30))
-        message_timer += 1
-        if message_timer > 60:  # Message disappears after 60 frames (~2 seconds)
-            attack_messages.pop(0)
-            message_timer = 0
+    draw_messages()  # Draw attack messages
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -171,7 +177,7 @@ while running:
                 player_turn = False
             elif selected_unit and unit and unit.team == 2:  # Attack
                 if selected_unit.attack(unit):
-                    board.units.remove(unit)  # Remove unit if defeated
+                    board.units.remove(unit)
                 selected_unit = None
                 player_turn = False
 
