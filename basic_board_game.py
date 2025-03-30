@@ -1,5 +1,6 @@
 import pygame
 import time
+import os
 from abc import ABC, abstractmethod  # Import ABC module
 
 # --- Pygame Initialization ---
@@ -8,7 +9,7 @@ pygame.init()
 # --- Constants ---
 GRID_WIDTH = 10
 GRID_HEIGHT = 10
-CELL_SIZE = 50
+CELL_SIZE = 70
 SCREEN_WIDTH = GRID_WIDTH * CELL_SIZE
 SCREEN_HEIGHT = GRID_HEIGHT * CELL_SIZE
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -58,10 +59,34 @@ def distance(x1, y1, x2, y2):
     return abs(x1 - x2) + abs(y1 - y2)
 
 
+# --- Load Images (Using Relative Paths) ---
+BASE_DIR = os.path.dirname(__file__)
+IMAGE_DIR = os.path.join(BASE_DIR, "images")
+
+SWORDSMAN_DIR = os.path.join(IMAGE_DIR, "swordsman")
+ARCHER_DIR = os.path.join(IMAGE_DIR, "archer")
+
+SWORDSMAN_PURPRLE_IMG = pygame.image.load(
+    os.path.join(SWORDSMAN_DIR, "swordsman_purple.png")
+)
+SWORDSMAN_RED_IMG = pygame.image.load(os.path.join(SWORDSMAN_DIR, "swordsman_red.png"))
+
+ARCHER_PURPLE_IMG = pygame.image.load(os.path.join(ARCHER_DIR, "archer_purple.png"))
+ARCHER_RED_IMG = pygame.image.load(os.path.join(ARCHER_DIR, "archer_red.png"))
+
+# Scale images to fit the grid cells
+SWORDSMAN_PURPRLE_IMG = pygame.transform.scale(
+    SWORDSMAN_PURPRLE_IMG, (CELL_SIZE, CELL_SIZE)
+)
+SWORDSMAN_RED_IMG = pygame.transform.scale(SWORDSMAN_RED_IMG, (CELL_SIZE, CELL_SIZE))
+ARCHER_PURPLE_IMG = pygame.transform.scale(ARCHER_PURPLE_IMG, (CELL_SIZE, CELL_SIZE))
+ARCHER_RED_IMG = pygame.transform.scale(ARCHER_RED_IMG, (CELL_SIZE, CELL_SIZE))
+
+
 # --- Abstract Unit Class ---
 class Unit(ABC):
     def __init__(
-        self, name, x, y, team, health, attack_power, attack_range, move_range
+        self, name, x, y, team, health, attack_power, attack_range, move_range, image
     ):
         self.name = name
         self.x = x
@@ -72,6 +97,7 @@ class Unit(ABC):
         self.attack_range = attack_range
         self.move_range = move_range
         self.has_acted = False
+        self.image = image
 
     @abstractmethod
     def move(self, new_x, new_y, units):
@@ -83,21 +109,18 @@ class Unit(ABC):
 
     def draw(self, screen):
         px, py = grid_to_pixel(self.x, self.y)
-        color = BLUE if self.team == 1 else RED
-        pygame.draw.circle(
-            screen, color, (px + CELL_SIZE // 2, py + CELL_SIZE // 2), CELL_SIZE // 3
-        )
+        screen.blit(self.image, (px, py))
 
         # Health display
         health_text = font.render(str(self.health), True, BLACK)
-        screen.blit(health_text, (px + CELL_SIZE // 4, py + CELL_SIZE // 4))
+        screen.blit(health_text, (px + 5, py + 5))
 
 
 # --- Soldier Classes ---
-class Infantry(Unit):
-    def __init__(self, x, y, team):
+class Swordsman(Unit):
+    def __init__(self, x, y, team, Image):
         super().__init__(
-            "Infantry",
+            "Swordsman",
             x,
             y,
             team,
@@ -105,6 +128,7 @@ class Infantry(Unit):
             attack_power=4,
             attack_range=1,
             move_range=2,
+            image=Image,
         )
 
     def move(self, new_x, new_y, units):
@@ -131,9 +155,17 @@ class Infantry(Unit):
 
 
 class Archer(Unit):
-    def __init__(self, x, y, team):
+    def __init__(self, x, y, team, Image):
         super().__init__(
-            "Archer", x, y, team, health=8, attack_power=5, attack_range=3, move_range=3
+            "Archer",
+            x,
+            y,
+            team,
+            health=8,
+            attack_power=5,
+            attack_range=3,
+            move_range=3,
+            image=Image,
         )
 
     def move(self, new_x, new_y, units):
@@ -211,8 +243,11 @@ class GridBoard:
 # --- Game Initialization ---
 board = GridBoard(GRID_WIDTH, GRID_HEIGHT)
 
-player_units = [Infantry(2, 2, 1), Archer(3, 3, 1)]
-ai_units = [Infantry(7, 7, 2), Archer(6, 6, 2)]
+player_units = [
+    Swordsman(2, 2, 1, SWORDSMAN_PURPRLE_IMG),
+    Archer(3, 3, 1, ARCHER_PURPLE_IMG),
+]
+ai_units = [Swordsman(7, 7, 2, SWORDSMAN_RED_IMG), Archer(6, 6, 2, ARCHER_RED_IMG)]
 
 for unit in player_units + ai_units:
     board.add_unit(unit)
