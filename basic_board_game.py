@@ -24,7 +24,7 @@ pygame.font.init()
 font = pygame.font.Font(None, 30)
 
 # --- Message System ---
-messages = []  # Stores (text, timestamp)
+messages = []
 
 def add_message(text):
     """ Add a message with a timestamp. """
@@ -32,7 +32,7 @@ def add_message(text):
 
 def draw_messages():
     """ Display messages at the bottom of the screen. """
-    y_offset = SCREEN_HEIGHT - 30  # Start from bottom
+    y_offset = SCREEN_HEIGHT - 30
     current_time = time.time()
 
     # Remove old messages (older than 3 seconds)
@@ -41,8 +41,7 @@ def draw_messages():
     for msg, _ in reversed(messages):  # Show latest messages at the bottom
         text_surface = font.render(msg, True, BLACK)
         screen.blit(text_surface, (10, y_offset))
-        y_offset -= 25  # Move up for the next message
-
+        y_offset -= 25
 
 # --- Helper Functions ---
 def pixel_to_grid(px, py):
@@ -61,15 +60,23 @@ class Unit:
         self.health = 10
         self.attack_power = 3
         self.move_range = 2
-    
-    def move(self, new_x, new_y):
+        self.has_acted = False  # Track if unit has moved/attacked this turn
+
+    def move(self, new_x, new_y, units):
+        """ Move unit to a new grid location if within range and not occupied. """
         if abs(self.x - new_x) + abs(self.y - new_y) <= self.move_range:
+            if any(unit.x == new_x and unit.y == new_y for unit in units):
+                add_message(f"{self.name} cannot move, tile occupied!")
+                return  
+
             self.x, self.y = new_x, new_y
+            self.has_acted = True
 
     def attack(self, target):
+        """ Attack another unit, reducing its health. """
         target.health -= self.attack_power
-        message = f"{self.name} attacked {target.name}, -{self.attack_power} HP!"
-        add_message(message)
+        add_message(f"{self.name} attacked {target.name}, -{self.attack_power} HP!")
+        self.has_acted = True
 
         if target.health <= 0:
             add_message(f"{target.name} was defeated!")
@@ -77,6 +84,7 @@ class Unit:
         return False
 
     def draw(self, screen):
+        """ Draw the unit with its health. """
         px, py = grid_to_pixel(self.x, self.y)
         color = BLUE if self.team == 1 else RED
         pygame.draw.circle(screen, color, (px + CELL_SIZE // 2, py + CELL_SIZE // 2), CELL_SIZE // 3)
@@ -85,33 +93,34 @@ class Unit:
         health_text = font.render(str(self.health), True, BLACK)
         screen.blit(health_text, (px + CELL_SIZE // 4, py + CELL_SIZE // 4))
 
-
 # --- AI Class ---
 class AI:
     def take_turn(self, units):
+        """ AI moves towards the nearest player unit and attacks if possible. """
         ai_units = [unit for unit in units if unit.team == 2]
         player_units = [unit for unit in units if unit.team == 1]
 
+        if not player_units:  
+            return  # No player units left, AI does nothing
+
         for unit in ai_units:
-            if player_units:
-                target = min(player_units, key=lambda p: abs(p.x - unit.x) + abs(p.y - unit.y))
+            target = min(player_units, key=lambda p: abs(p.x - unit.x) + abs(p.y - unit.y))
 
-                dx, dy = 0, 0
-                if unit.x < target.x:
-                    dx = 1
-                elif unit.x > target.x:
-                    dx = -1
-                if unit.y < target.y:
-                    dy = 1
-                elif unit.y > target.y:
-                    dy = -1
+            dx, dy = 0, 0
+            if unit.x < target.x:
+                dx = 1
+            elif unit.x > target.x:
+                dx = -1
+            if unit.y < target.y:
+                dy = 1
+            elif unit.y > target.y:
+                dy = -1
 
-                if abs(unit.x - target.x) + abs(unit.y - target.y) > 1:
-                    unit.move(unit.x + dx, unit.y + dy)
-                else:
-                    if unit.attack(target):
-                        units.remove(target)  # Remove defeated player unit
-
+            if abs(unit.x - target.x) + abs(unit.y - target.y) > 1:
+                unit.move(unit.x + dx, unit.y + dy, units)
+            else:
+                if unit.attack(target):
+                    units.remove(target)
 
 # --- Game Board ---
 class GridBoard:
@@ -142,13 +151,22 @@ class GridBoard:
         for unit in self.units:
             unit.draw(screen)
 
-
 # --- Game Initialization ---
 board = GridBoard(GRID_WIDTH, GRID_HEIGHT)
-player_unit = Unit("Swordsman", 2, 2, team=1)
-ai_unit = Unit("Spearman", 7, 7, team=2)
-board.add_unit(player_unit)
-board.add_unit(ai_unit)
+
+# Adding multiple units for player and AI
+player_units = [
+    Unit("Swordsman", 2, 2, team=1),
+    Unit("Archer", 3, 3, team=1),
+]
+ai_units = [
+    Unit("Spearman", 7, 7, team=2),
+    Unit("Knight", 6, 6, team=2),
+]
+
+for unit in player_units + ai_units:
+    board.add_unit(unit)
+
 enemy_bot = AI()
 
 # --- Game Loop ---
@@ -159,7 +177,7 @@ player_turn = True
 while running:
     screen.fill(WHITE)
     board.draw(screen)
-    draw_messages()  # Draw attack messages
+    draw_messages()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -169,21 +187,25 @@ while running:
             x, y = pixel_to_grid(px, py)
 
             unit = board.get_unit_at(x, y)
-            if unit and unit.team == 1:  # Player selects a unit
+            if unit and unit.team == 1 and not unit.has_acted:  # Select only if unit hasn't moved yet
                 selected_unit = unit
-            elif selected_unit and not unit:  # Move selected unit
-                selected_unit.move(x, y)
+            elif selected_unit and not unit:  # Move
+                selected_unit.move(x, y, board.units)
                 selected_unit = None
-                player_turn = False
             elif selected_unit and unit and unit.team == 2:  # Attack
                 if selected_unit.attack(unit):
                     board.units.remove(unit)
                 selected_unit = None
-                player_turn = False
 
-    if not player_turn:
-        pygame.time.delay(500)  # AI reaction delay
+    # **End Turn Only After All Player Units Have Acted**
+    if player_turn and all(unit.has_acted for unit in player_units):
+        pygame.time.delay(500)
         enemy_bot.take_turn(board.units)
+
+        # Reset all player units for next turn
+        for unit in player_units:
+            unit.has_acted = False
+        
         player_turn = True
 
     pygame.display.flip()
