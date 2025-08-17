@@ -1,7 +1,8 @@
-import pygame
-import time
 import os
+import time
 from abc import ABC, abstractmethod  # Import ABC module
+
+import pygame
 
 # --- Pygame Initialization ---
 pygame.init()
@@ -78,9 +79,12 @@ ARCHER_RED_IMG = pygame.image.load(os.path.join(ARCHER_DIR, "archer_red.png"))
 SWORDSMAN_PURPRLE_IMG = pygame.transform.scale(
     SWORDSMAN_PURPRLE_IMG, (CELL_SIZE, CELL_SIZE)
 )
-SWORDSMAN_RED_IMG = pygame.transform.scale(SWORDSMAN_RED_IMG, (CELL_SIZE, CELL_SIZE))
-ARCHER_PURPLE_IMG = pygame.transform.scale(ARCHER_PURPLE_IMG, (CELL_SIZE, CELL_SIZE))
-ARCHER_RED_IMG = pygame.transform.scale(ARCHER_RED_IMG, (CELL_SIZE, CELL_SIZE))
+SWORDSMAN_RED_IMG = pygame.transform.scale
+(SWORDSMAN_RED_IMG, (CELL_SIZE, CELL_SIZE))
+ARCHER_PURPLE_IMG = pygame.transform.scale
+(ARCHER_PURPLE_IMG, (CELL_SIZE, CELL_SIZE))
+ARCHER_RED_IMG = pygame.transform.scale
+(ARCHER_RED_IMG, (CELL_SIZE, CELL_SIZE))
 
 
 # --- Abstract Unit Class ---

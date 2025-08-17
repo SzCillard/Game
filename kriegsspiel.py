@@ -1,5 +1,6 @@
-import pygame
 import math
+
+import pygame
 
 # Initialize Pygame
 pygame.init()
@@ -12,6 +13,7 @@ pygame.display.set_caption("Hex Map")
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
+
 def draw_hexagon(surface, color, center, size):
     points = []
     for i in range(6):
@@ -21,12 +23,16 @@ def draw_hexagon(surface, color, center, size):
         points.append((x, y))
     pygame.draw.polygon(surface, color, points, 1)
 
+
 def draw_hex_map(surface, rows, cols, hex_size):
     for row in range(rows):
         for col in range(cols):
             x = col * hex_size * 1.5
-            y = row * hex_size * math.sqrt(3) + (col % 2) * (hex_size * math.sqrt(3) / 2)
+            y = row * hex_size * math.sqrt(3) + (col % 2) * (
+                hex_size * math.sqrt(3) / 2
+            )
             draw_hexagon(surface, BLACK, (x + 50, y + 50), hex_size)
+
 
 # Main loop
 running = True
@@ -40,5 +46,3 @@ while running:
     pygame.display.flip()
 
 pygame.quit()
-
-
