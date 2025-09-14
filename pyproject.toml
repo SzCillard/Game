@@ -35,3 +35,6 @@ ignore = []
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.poetry.scripts]
+game = "main:main"
