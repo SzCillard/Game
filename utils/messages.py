@@ -1,14 +1,17 @@
 import time
 from typing import List, Tuple
 
+from utils.logging import logger
+
 _messages: List[Tuple[str, float]] = []
 
 
 def add_message(text: str):
     _messages.append((text, time.time()))
+    logger(text)
 
 
-def draw_messages(screen, font, screen_height: int, keep_secs: float = 3.0):
+def draw_messages(screen, font, screen_height: int, keep_secs: float = 4.0):
     y_offset = screen_height - 28
     now = time.time()
     # keep only recent

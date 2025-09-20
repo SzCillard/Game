@@ -1,7 +1,7 @@
 # backend/units.py
 from abc import ABC
 
-from utils.constants import UnitType
+from utils.constants import TeamType, UnitType
 
 
 class Unit(ABC):
@@ -12,27 +12,31 @@ class Unit(ABC):
         name: UnitType,
         x: int,
         y: int,
-        team: int,
+        team: TeamType,
         health: int,
         attack_power: int,
         attack_range: int,
-        move_range: int,
+        move_range: float,
     ):
         Unit._id_counter += 1
-        self.id = Unit._id_counter
-        self.name = name
-        self.x = x
-        self.y = y
-        self.team = team
-        self.health = health
-        self.attack_power = attack_power
-        self.attack_range = attack_range
-        self.move_range = move_range
-        self.has_acted = False
+        self.id: int = Unit._id_counter
+        self.name: UnitType = name
+        self.x: int = x
+        self.y: int = y
+        self.team: TeamType = team
+        self.health: int = health
+        self.attack_power: int = attack_power
+        self.attack_range: int = attack_range
+        self.move_range: float = move_range
+
+        # Per-turn state
+        self.move_points: float = move_range  # reset at start of turn
+        self.has_attacked: bool = False  # has the unit attacked this turn?
+        self.has_acted: bool = False  # generic flag if unit already acted
 
 
 class Swordsman(Unit):
-    def __init__(self, x, y, team):
+    def __init__(self, x: int, y: int, team: TeamType):
         super().__init__(
             name=UnitType.SWORDSMAN,
             x=x,
@@ -41,12 +45,12 @@ class Swordsman(Unit):
             health=12,
             attack_power=4,
             attack_range=1,
-            move_range=2,
+            move_range=2.0,
         )
 
 
 class Archer(Unit):
-    def __init__(self, x, y, team):
+    def __init__(self, x: int, y: int, team: TeamType):
         super().__init__(
             name=UnitType.ARCHER,
             x=x,
@@ -55,5 +59,5 @@ class Archer(Unit):
             health=8,
             attack_power=5,
             attack_range=3,
-            move_range=3,
+            move_range=3.0,
         )

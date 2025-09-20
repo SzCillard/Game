@@ -23,7 +23,7 @@ class TileType(IntEnum):
 
 TERRAIN_MOVE_COST = {
     TileType.PLAIN: 1,
-    TileType.HILL: 1,
+    TileType.HILL: 2,  # slows
     TileType.MOUNTAIN: 9999,  # impassable
     TileType.WATER: 2,  # slows
 }
@@ -48,3 +48,16 @@ TILE_COLORS = {
 GRID_COLOR = (50, 90, 50)
 HP_BG = (0, 0, 0)
 HP_FG = (255, 255, 255)
+
+DIRS = (
+    (1, 0),
+    (-1, 0),
+    (0, 1),
+    (0, -1),
+    (1, 1),
+    (-1, -1),
+    (1, -1),
+    (-1, 1),
+)
+
+EPSILON = 0.6  # tolerance for float movement points

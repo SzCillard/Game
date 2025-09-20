@@ -1,56 +1,56 @@
 # ai/basic_agent.py
-from utils.helpers import distance
+from typing import Any, Dict, Optional
+
+from utils.helpers import manhattan, next_step_toward_snapshot
 
 from .base_agent import BaseAgent
 
 
 class BasicAgent(BaseAgent):
-    def __init__(self):
-        pass
+    def __init__(self) -> None:
+        super().__init__()
 
-    def decide_next_action(self, board_snapshot, team):
+    def decide_next_action(
+        self, board_snapshot: Dict[str, Any], team: int
+    ) -> Optional[Dict[str, Any]]:
         """
-        Decide the next action for one unit.
-
-        Args:
-            board_snapshot: a read-only representation of the current board
-            team: the team number (1 or 2)
-
-        Returns:
-            action: dict containing
-                {
-                    "unit_id": int,
-                    "type": "move" or "attack",
-                    "target": (x, y) for move or target_unit_id for attack
-                }
-            or None if no action possible
+        board_snapshot: dict returned by GameState.get_snapshot()
+        team: int (TeamType value)
         """
+        units = board_snapshot["units"]
         my_units = [
-            u for u in board_snapshot if u["team"] == team and not u["has_acted"]
+            u
+            for u in units
+            if int(u["team"]) == int(team)
+            and not u["has_acted"]
+            and u["move_points"] > 0
         ]
-        enemy_units = [u for u in board_snapshot if u["team"] != team]
+
+        enemy_units = [
+            u for u in units if int(u["team"]) != int(team) and u["health"] > 0
+        ]
 
         if not my_units or not enemy_units:
             return None
 
         unit = my_units[0]
+        # pick nearest by manhattan for attack check, but movement uses path
         target = min(
-            enemy_units, key=lambda e: distance(unit["x"], unit["y"], e["x"], e["y"])
+            enemy_units, key=lambda e: manhattan(unit["x"], unit["y"], e["x"], e["y"])
         )
 
-        dist = distance(unit["x"], unit["y"], target["x"], target["y"])
-
-        if dist <= unit["attack_range"]:
+        # if in attack range (tile distance) -> attack
+        if (
+            manhattan(unit["x"], unit["y"], target["x"], target["y"])
+            <= unit["attack_range"]
+        ):
             return {"unit_id": unit["id"], "type": "attack", "target": target["id"]}
-        else:
-            # Move one step toward target
-            dx = target["x"] - unit["x"]
-            dy = target["y"] - unit["y"]
-            # Clamp to one tile
-            dx = 0 if dx == 0 else (1 if dx > 0 else -1)
-            dy = 0 if dy == 0 else (1 if dy > 0 else -1)
 
-            new_x = unit["x"] + dx
-            new_y = unit["y"] + dy
-
-            return {"unit_id": unit["id"], "type": "move", "target": (new_x, new_y)}
+        # otherwise compute next step along shortest-cost path and move there
+        nxt = next_step_toward_snapshot(
+            board_snapshot, (unit["x"], unit["y"]), (target["x"], target["y"])
+        )
+        if nxt is None:
+            return None
+        nx, ny = nxt
+        return {"unit_id": unit["id"], "type": "move", "target": (nx, ny)}
