@@ -11,6 +11,74 @@ class UI:
     def __init__(self, cell_size: int):
         self.cell_size = cell_size
 
+    def start_menu(self, screen, font) -> Any:
+        """
+        Show a polished start menu, return chosen option as
+        a string ('start_game' or 'quit').
+        Uses rounded buttons with hover effect.
+        """
+        running = True
+        selected_option = 0
+        options = ["Start Game", "Quit"]
+        clock = pygame.time.Clock()
+
+        while running:
+            screen.fill((30, 30, 40))
+            sw, sh = screen.get_size()
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+
+            # Draw title
+            title_surf = font.render("Commanders' Arena", True, (255, 220, 100))
+            screen.blit(
+                title_surf, (sw // 2 - title_surf.get_width() // 2, sh // 4 - 60)
+            )
+
+            # Draw buttons
+            for i, option in enumerate(options):
+                btn_width, btn_height = 220, 50
+                btn_x = sw // 2 - btn_width // 2
+                btn_y = sh // 2 - 40 + i * 80
+                btn_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
+
+                # Hover effect
+                if btn_rect.collidepoint(mouse_x, mouse_y):
+                    color = (255, 230, 80)
+                    selected_option = i
+                else:
+                    color = (200, 200, 200)
+
+                pygame.draw.rect(screen, color, btn_rect, border_radius=12)
+
+                # Text
+                text_surf = font.render(option, True, (10, 10, 10))
+                screen.blit(
+                    text_surf,
+                    (
+                        btn_x + btn_width // 2 - text_surf.get_width() // 2,
+                        btn_y + btn_height // 2 - text_surf.get_height() // 2,
+                    ),
+                )
+
+            pygame.display.flip()
+
+            # Event handling
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return "quit"
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key in [pygame.K_DOWN, pygame.K_s]:
+                        selected_option = (selected_option + 1) % len(options)
+                    elif event.key in [pygame.K_UP, pygame.K_w]:
+                        selected_option = (selected_option - 1) % len(options)
+                    elif event.key in [pygame.K_RETURN, pygame.K_SPACE]:
+                        return options[selected_option].lower().replace(" ", "_")
+
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    return options[selected_option].lower().replace(" ", "_")
+
+            clock.tick(30)
+
     def handle_event(
         self,
         event: pygame.event.Event,
