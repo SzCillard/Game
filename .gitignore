@@ -1,1 +1,5 @@
-/log
+# Logs
+log/
+
+# Python cache directories
+*/__pycache__/

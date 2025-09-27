@@ -3,24 +3,23 @@ from typing import Optional
 
 from backend.board import GameState, TileType
 from backend.units import Unit
+from utils.constants import EPSILON
 from utils.helpers import compute_min_cost_gs, manhattan
 from utils.messages import add_message
 
+# ------------------------------
+# Movement & Combat
+# ------------------------------
+
 
 def can_move(unit: Unit, gs: GameState, to_x: int, to_y: int) -> bool:
-    """
-    Check if the unit can move to (to_x, to_y) within its remaining move_points,
-    considering terrain costs and blocking units.
-    """
     if not gs.in_bounds(to_x, to_y):
         return False
     if gs.get_unit_at(to_x, to_y) is not None:
         return False
     if gs.tile(to_x, to_y) == TileType.MOUNTAIN:
         return False
-
-    # if unit has already attacked this turn, it cannot move
-    if getattr(unit, "has_attacked"):
+    if getattr(unit, "has_attacked"):  # cannot move after attacking
         return False
 
     remaining = getattr(unit, "move_points", unit.move_range)
@@ -41,7 +40,7 @@ def move_unit(unit: Unit, gs: GameState, to_x: int, to_y: int) -> bool:
     unit.x = to_x
     unit.y = to_y
     unit.move_points = max(0.0, round(unit.move_points - cost, 3))
-    if unit.move_points == 0.0:
+    if unit.move_points <= EPSILON:
         unit.has_acted = True
 
     add_message(
@@ -77,19 +76,36 @@ def apply_attack(attacker: Unit, defender: Unit, gs: GameState) -> bool:
         if deff > 0:
             add_message(f"{defender.name} retaliated for {deff}.")
 
-    # Attacking consumes any remaining movement this turn
     attacker.has_attacked = True
     attacker.move_points = 0
     gs.remove_dead()
     return True
 
 
+# ------------------------------
+# Turn Flow Helpers
+# ------------------------------
+
+
 def turn_begin_reset(gs: GameState, team: int) -> None:
+    """Reset all units of the given team at the start of their turn."""
     for u in gs.units:
         if u.team == team:
             u.move_points = u.move_range
             u.has_attacked = False
             u.has_acted = False
+
+
+def turn_check_end(gs: GameState, team: int) -> bool:
+    """
+    Check if all units of a team are done acting.
+    Units with 0 movement left are marked as 'has_acted'.
+    """
+    units = [u for u in gs.units if u.team == team]
+    for u in units:
+        if u.move_points <= EPSILON:
+            u.has_acted = True
+    return all(u.has_acted for u in units)
 
 
 def check_victory(gs: GameState) -> Optional[int]:
@@ -99,3 +115,44 @@ def check_victory(gs: GameState) -> Optional[int]:
     if 1 not in teams and 2 not in teams:
         return 0  # draw
     return 1 if 1 in teams else 2
+
+
+# ------------------------------
+# AI Turn Runner
+# ------------------------------
+
+
+def run_ai_turn(gs: GameState, agent, ai_team: int) -> None:
+    """
+    Execute one full AI turn for all units of ai_team using the given agent.
+    """
+    ai_units = [
+        u
+        for u in gs.units
+        if u.team == ai_team and not u.has_acted and u.move_points > EPSILON
+    ]
+
+    for unit in ai_units:
+        while unit.move_points > EPSILON and not unit.has_acted:
+            snapshot = gs.get_snapshot()
+            action = agent.decide_next_action(snapshot, ai_team)
+
+            if not action:
+                unit.has_acted = True
+                break
+
+            if action["type"] == "move":
+                nx, ny = action["target"]
+                if not move_unit(unit, gs, nx, ny):
+                    unit.has_acted = True  # cannot move further
+                    break
+
+            elif action["type"] == "attack":
+                defender = next(
+                    (u for u in gs.units if u.id == action["target"]),
+                    None,
+                )
+                if defender:
+                    apply_attack(unit, defender, gs)
+                unit.has_acted = True
+                break
