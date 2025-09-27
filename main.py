@@ -133,10 +133,9 @@ def main():
 
             # Reset player units for next turn
             for u in board_api.get_units():
-                if u.team == TeamType.PLAYER:
-                    u.move_points = u.move_range
-                    u.has_attacked = False
-                    u.has_acted = False
+                u.move_points = u.move_range
+                u.has_attacked = False
+                u.has_acted = False
 
             current_team = TeamType.PLAYER
             add_message("Player's turn!")
