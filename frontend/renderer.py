@@ -63,3 +63,18 @@ class Renderer:
         screen.blit(
             surf, (sw // 2 - surf.get_width() // 2, sh // 2 - surf.get_height() // 2)
         )
+
+    def draw_highlights(self, screen, move_tiles, attack_tiles):
+        # Movement highlights (blue outlines)
+        for x, y in move_tiles:
+            rect = pygame.Rect(
+                x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size
+            )
+            pygame.draw.rect(screen, (100, 150, 255), rect, width=3)
+
+        # Attack highlights (red outlines)
+        for x, y in attack_tiles:
+            rect = pygame.Rect(
+                x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size
+            )
+            pygame.draw.rect(screen, (255, 100, 100), rect, width=3)

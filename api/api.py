@@ -67,6 +67,12 @@ class GameAPI:
 
         return self.game_logic.apply_attack(attacker, target)
 
+    def get_movable_tiles(self, unit):
+        return self.game_logic.get_movable_tiles(unit)
+
+    def get_attackable_tiles(self, unit):
+        return self.game_logic.get_attackable_tiles(unit)
+
     # --- Agent interaction ---
     def get_board_snapshot(self):
         """Provide a read-only view of the board for AI agents"""
@@ -104,6 +110,9 @@ class GameAPI:
 
     def draw_messages(self, screen, font, screen_height):
         draw_messages(screen, font, screen_height)
+
+    def draw_highlights(self, screen, move_tiles, attack_tiles):
+        self.renderer.draw_highlights(screen, move_tiles, attack_tiles)
 
 
 """

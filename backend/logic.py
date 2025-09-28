@@ -1,5 +1,5 @@
 # backend/logic.py
-from typing import Optional
+from typing import Optional, Tuple
 
 from backend.board import GameState, TileType
 from backend.units import Unit
@@ -15,6 +15,23 @@ class GameLogic:
     # ------------------------------
     # Movement & Combat
     # ------------------------------
+
+    def get_movable_tiles(self, unit) -> list[Tuple[int, int]]:
+        """Return all (x,y) positions unit can move to."""
+        tiles = []
+        for x in range(self.gs.width):
+            for y in range(self.gs.height):
+                if self.can_move(unit, x, y):
+                    tiles.append((x, y))
+        return tiles
+
+    def get_attackable_tiles(self, unit) -> list[Tuple[int, int]]:
+        """Return all (x,y) positions unit can attack."""
+        tiles = []
+        for target in self.gs.units:
+            if self.can_attack(unit, target):
+                tiles.append((target.x, target.y))
+        return tiles
 
     def can_move(self, unit: Unit, to_x: int, to_y: int) -> bool:
         if not self.gs.in_bounds(to_x, to_y):

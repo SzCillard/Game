@@ -35,6 +35,17 @@ class GameEngine:
         snapshot = self.game_api.get_board_snapshot()
         self.screen.fill((240, 240, 240))
         self.game_api.draw(self.screen, snapshot, self.selected_id)
+
+        # --- Highlight movement and attack ranges ---
+        if self.selected_id is not None:
+            unit = next(
+                (u for u in self.game_api.get_units() if u.id == self.selected_id), None
+            )
+            if unit:
+                move_tiles = self.game_api.get_movable_tiles(unit)
+                attack_tiles = self.game_api.get_attackable_tiles(unit)
+                self.game_api.draw_highlights(self.screen, move_tiles, attack_tiles)
+
         self.game_api.draw_messages(self.screen, self.font, SCREEN_H)
         pygame.display.flip()
 
