@@ -21,6 +21,12 @@ class TileType(IntEnum):
     WATER = 3
 
 
+class TileHighlightType(IntEnum):
+    MOVE = 1
+    ATTACK = 2
+    BOTH = 3
+
+
 TERRAIN_MOVE_COST = {
     TileType.PLAIN: 1,
     TileType.HILL: 2,  # slows
@@ -39,10 +45,15 @@ TEAM_COLORS = {
 }
 
 TILE_COLORS = {
-    TileType.PLAIN: (210, 220, 210),
+    TileType.PLAIN: (153, 204, 140),
     TileType.HILL: (195, 205, 170),
     TileType.MOUNTAIN: (140, 140, 140),
-    TileType.WATER: (150, 180, 220),
+    TileType.WATER: (0, 153, 153),
+}
+TILE_HIGHLIGHT_COLOR = {
+    TileHighlightType.MOVE: (100, 150, 255),
+    TileHighlightType.ATTACK: (255, 100, 100),
+    TileHighlightType.BOTH: (255, 100, 255),
 }
 
 GRID_COLOR = (50, 90, 50)

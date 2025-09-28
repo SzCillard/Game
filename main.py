@@ -3,7 +3,7 @@ import pygame
 
 from ai.basic_agent import BasicAgent
 from api.api import GameAPI
-from backend.board import GameState, create_default_map
+from backend.board import GameState, create_random_map
 from backend.game_engine import GameEngine
 from backend.logic import GameLogic
 from backend.units import Archer, Swordsman
@@ -18,7 +18,7 @@ def create_game():
         width=GRID_W,
         height=GRID_H,
         cell_size=CELL_SIZE,
-        tile_map=create_default_map(GRID_W, GRID_H),
+        tile_map=create_random_map(GRID_W, GRID_H),
     )
     game_logic = GameLogic(game_state=game_state)
 

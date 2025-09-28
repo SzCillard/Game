@@ -1,7 +1,15 @@
 # frontend/renderer.py
 import pygame
 
-from utils.constants import GRID_COLOR, HP_BG, HP_FG, TILE_COLORS
+from utils.constants import (
+    GRID_COLOR,
+    HP_BG,
+    HP_FG,
+    TEAM_COLORS,
+    TILE_COLORS,
+    TILE_HIGHLIGHT_COLOR,
+    TileHighlightType,
+)
 
 
 class Renderer:
@@ -24,7 +32,6 @@ class Renderer:
 
     def draw_units(self, screen, board_snapshot, selected_id=None):
         units = board_snapshot["units"]
-        from utils.constants import TEAM_COLORS
 
         for u in units:
             color = TEAM_COLORS.get(u["team"], (100, 100, 100))
@@ -70,11 +77,15 @@ class Renderer:
             rect = pygame.Rect(
                 x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size
             )
-            pygame.draw.rect(screen, (100, 150, 255), rect, width=3)
+            pygame.draw.rect(
+                screen, TILE_HIGHLIGHT_COLOR[TileHighlightType.MOVE], rect, width=3
+            )
 
         # Attack highlights (red outlines)
         for x, y in attack_tiles:
             rect = pygame.Rect(
                 x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size
             )
-            pygame.draw.rect(screen, (255, 100, 100), rect, width=3)
+            pygame.draw.rect(
+                screen, TILE_HIGHLIGHT_COLOR[TileHighlightType.ATTACK], rect, width=3
+            )
