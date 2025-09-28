@@ -22,9 +22,13 @@ def create_game():
     )
     game_logic = GameLogic(game_state=game_state)
 
+    game_ui = UI(cell_size=CELL_SIZE)
+    game_renderer = Renderer(cell_size=CELL_SIZE, font=pygame.font.Font(None, 28))
     game_api = GameAPI(
-        board=game_state,
-        logic=game_logic,
+        game_ui=game_ui,
+        renderer=game_renderer,
+        game_board=game_state,
+        game_logic=game_logic,
         agent=BasicAgent(),
         player_team=TeamType.PLAYER,
         ai_team=TeamType.AI,
@@ -37,7 +41,7 @@ def create_game():
         Archer(GRID_W - 3, GRID_H - 2, team=TeamType.AI),
     ]
     for u in p1 + p2:
-        game_api.board.add_unit(u)
+        game_api.game_board.add_unit(u)
 
     return game_api
 
@@ -49,11 +53,8 @@ def main():
     pygame.display.set_caption("Commanders' Arena")
     font = pygame.font.Font(None, 28)
 
-    renderer = Renderer(cell_size=CELL_SIZE, font=font)
     ui = UI(cell_size=CELL_SIZE)
     clock = pygame.time.Clock()
-
-    create_log_file()
 
     running = True
     while running:
@@ -62,9 +63,11 @@ def main():
         if choice == "quit":
             break
 
+        create_log_file()
+
         # New game
         game_api = create_game()
-        engine = GameEngine(game_api, renderer, ui, screen, font, clock)
+        engine = GameEngine(game_api, screen, font, clock)
         running = engine.run()
 
     pygame.quit()

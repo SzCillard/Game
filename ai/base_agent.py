@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class BaseAgent(ABC):
     @abstractmethod
     def decide_next_action(
-        self, board_snapshot: List[Dict[str, Any]], team: int
-    ) -> Dict[str, Any] | None:
+        self, board_snapshot: Dict[str, Any], team: int
+    ) -> Optional[Dict[str, Any]]:
         """
         Decide the next action for one of the agent's units.
 

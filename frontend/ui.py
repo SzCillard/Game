@@ -1,7 +1,10 @@
 # frontend/ui.py
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pygame
+
+if TYPE_CHECKING:
+    from api.api import GameAPI
 
 from utils.constants import TeamType
 from utils.helpers import pixel_to_grid
@@ -11,6 +14,7 @@ class UI:
     def __init__(self, cell_size: int):
         self.cell_size = cell_size
 
+    # TODO: refactor frontend bc looks mixed and messy with renderer
     def start_menu(self, screen, font) -> Any:
         """
         Show a polished start menu, return chosen option as
@@ -128,7 +132,9 @@ class UI:
 
         return None
 
-    def apply_action(self, action: Dict[str, Any], api) -> Dict[str, Optional[int]]:
+    def apply_action(
+        self, action: Dict[str, Any], api: "GameAPI"
+    ) -> Dict[str, Optional[int]]:
         """
         Apply the given action through the API and return updated selection.
         """
