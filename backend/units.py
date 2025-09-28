@@ -20,7 +20,7 @@ class Unit(ABC):
     ):
         Unit._id_counter += 1
         self.id: int = Unit._id_counter
-        self.name: UnitType = name
+        self.name: str = name.value
         self.x: int = x
         self.y: int = y
         self.team: TeamType = team

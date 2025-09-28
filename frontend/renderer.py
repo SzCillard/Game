@@ -36,7 +36,7 @@ class Renderer:
             )
             pygame.draw.rect(screen, color, rect, border_radius=8)
 
-            name_surf = self.font.render(str(u["name"].value)[0], True, (255, 255, 255))
+            name_surf = self.font.render(u["name"][0], True, (255, 255, 255))
             screen.blit(name_surf, (rect.x + 6, rect.y + 4))
 
             hp_text = self.font.render(str(max(0, u["health"])), True, HP_FG)

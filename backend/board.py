@@ -73,10 +73,8 @@ class GameState:
     def remove_dead(self) -> None:
         self.units = [u for u in self.units if u.health > 0]
 
-    def is_game_over(self) -> bool:
-        teams = {u.team for u in self.units}
-        return not (1 in teams and 2 in teams)
 
+"""
     def get_winner(self) -> str:
         teams = {u.team for u in self.units}
         if 1 in teams and 2 not in teams:
@@ -84,6 +82,7 @@ class GameState:
         elif 2 in teams and 1 not in teams:
             return "AI"
         return "Draw"
+"""
 
 
 def create_default_map(w: int, h: int) -> List[List[TileType]]:
