@@ -102,6 +102,10 @@ class GameAPI:
         return self.game_ui.apply_action(action, self)
 
     def draw(self, screen, board_snapshot, selected_id=None):
+        # --- Sidebar first (so board draws next to it) ---
+        self.renderer.draw_sidebar(screen, board_snapshot, selected_id)
+
+        # --- Grid and units ---
         self.renderer.draw_grid(screen, board_snapshot)
         self.renderer.draw_units(screen, board_snapshot, selected_id)
 

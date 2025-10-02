@@ -12,6 +12,9 @@ from utils.constants import (
     TileHighlightType,
     UnitType,
     TeamType,
+    SCREEN_W,
+    SCREEN_H,
+    SIDEBAR_WIDTH,
 )
 
 
@@ -29,7 +32,6 @@ class Renderer:
         for unit in UnitType:
             images[unit] = {}
             for team in TeamType:
-                # filename convention: swordsman_purple.png / swordsman_red.png
                 team_name = "purple" if team == TeamType.PLAYER else "red"
                 path = os.path.join(
                     base_path, unit.name.lower(), f"{unit.name.lower()}_{team_name}.png"
@@ -43,12 +45,15 @@ class Renderer:
                     images[unit][team] = None
         return images
 
+    # ------------------------------
+    # Board
+    # ------------------------------
     def draw_grid(self, screen, board_snapshot):
         tiles = board_snapshot["tiles"]
         for y, row in enumerate(tiles):
             for x, tile in enumerate(row):
                 rect = pygame.Rect(
-                    x * self.cell_size,
+                    x * self.cell_size + SIDEBAR_WIDTH,  # shift right
                     y * self.cell_size,
                     self.cell_size,
                     self.cell_size,
@@ -60,17 +65,16 @@ class Renderer:
         units = board_snapshot["units"]
 
         for u in units:
-            unit_type = UnitType[u["name"].upper()]  # "Swordsman" -> UnitType.SWORDSMAN
+            unit_type = UnitType[u["name"].upper()]
             team = TeamType(u["team"])
 
             rect = pygame.Rect(
-                u["x"] * self.cell_size,
+                u["x"] * self.cell_size + SIDEBAR_WIDTH,  # shift right
                 u["y"] * self.cell_size,
                 self.cell_size,
                 self.cell_size,
             )
 
-            # Draw image if available, else fallback to colored rectangle
             img = self.unit_images.get(unit_type, {}).get(team)
             if img:
                 screen.blit(img, rect.topleft)
@@ -88,12 +92,11 @@ class Renderer:
             pygame.draw.rect(screen, HP_BG, bubble, border_radius=6)
             screen.blit(hp_text, (bubble.x + 3, bubble.y + 1))
 
-        # Selected highlight
         if selected_id is not None:
             selected = next((u for u in units if u["id"] == selected_id), None)
             if selected:
                 highlight = pygame.Rect(
-                    selected["x"] * self.cell_size,
+                    selected["x"] * self.cell_size + SIDEBAR_WIDTH,
                     selected["y"] * self.cell_size,
                     self.cell_size,
                     self.cell_size,
@@ -110,21 +113,76 @@ class Renderer:
         )
 
     def draw_highlights(self, screen, move_tiles, attack_tiles):
-        # Movement highlights (blue outlines)
+        # Movement (blue outlines)
         for x, y in move_tiles:
             rect = pygame.Rect(
-                x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size
+                x * self.cell_size + SIDEBAR_WIDTH,
+                y * self.cell_size,
+                self.cell_size,
+                self.cell_size,
             )
             pygame.draw.rect(
                 screen, TILE_HIGHLIGHT_COLOR[TileHighlightType.MOVE], rect, width=3
             )
 
-        # Attack highlights (semi-transparent red overlay)
+        # Attack (semi-transparent red)
         attack_overlay = pygame.Surface(
             (self.cell_size, self.cell_size), pygame.SRCALPHA
         )
-        attack_overlay.fill(
-            (*TILE_HIGHLIGHT_COLOR[TileHighlightType.ATTACK], 120)
-        )  # RGBA
+        attack_overlay.fill((*TILE_HIGHLIGHT_COLOR[TileHighlightType.ATTACK], 120))
         for x, y in attack_tiles:
-            screen.blit(attack_overlay, (x * self.cell_size, y * self.cell_size))
+            screen.blit(
+                attack_overlay, (x * self.cell_size + SIDEBAR_WIDTH, y * self.cell_size)
+            )
+
+    # ------------------------------
+    # Sidebar
+    # ------------------------------
+    def draw_sidebar(self, screen, board_snapshot, selected_id):
+        sidebar_rect = pygame.Rect(0, 0, SIDEBAR_WIDTH, SCREEN_H)
+        pygame.draw.rect(screen, (230, 230, 230), sidebar_rect)  # light gray bg
+        pygame.draw.line(
+            screen, (100, 100, 100), (SIDEBAR_WIDTH, 0), (SIDEBAR_WIDTH, SCREEN_H), 2
+        )
+
+        if selected_id is not None:
+            selected = next(
+                (u for u in board_snapshot["units"] if u["id"] == selected_id), None
+            )
+            if selected:
+                y = 20
+                screen.blit(
+                    self.font.render(f"{selected['name']}", True, (0, 0, 0)), (20, y)
+                )
+                y += 30
+                screen.blit(
+                    self.font.render(f"HP: {selected['health']}", True, (0, 0, 0)),
+                    (20, y),
+                )
+                y += 30
+                screen.blit(
+                    self.font.render(
+                        f"Move points: {selected['move_points']}", True, (0, 0, 0)
+                    ),
+                    (20, y),
+                )
+                y += 30
+                screen.blit(
+                    self.font.render(
+                        f"Attack power: {selected['attack_power']}", True, (0, 0, 0)
+                    ),
+                    (20, y),
+                )
+                y += 30
+                screen.blit(
+                    self.font.render(
+                        f"Attack range: {selected['attack_range']}", True, (0, 0, 0)
+                    ),
+                    (20, y),
+                )
+
+        # Bottom menu
+        menu_y = SCREEN_H - 100
+        for i, text in enumerate(["[M] Menu", "[Q] Quit", "[H] Help"]):
+            surf = self.font.render(text, True, (50, 50, 50))
+            screen.blit(surf, (20, menu_y + i * 30))

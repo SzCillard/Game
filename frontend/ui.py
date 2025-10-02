@@ -1,12 +1,11 @@
 # frontend/ui.py
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-
 import pygame
 
 if TYPE_CHECKING:
     from api.api import GameAPI
 
-from utils.constants import TeamType
+from utils.constants import TeamType, SIDEBAR_WIDTH
 from utils.helpers import pixel_to_grid
 
 
@@ -14,12 +13,13 @@ class UI:
     def __init__(self, cell_size: int):
         self.cell_size = cell_size
 
-    # TODO: refactor frontend bc looks mixed and messy with renderer
+    # ------------------------------
+    # Start Menu
+    # ------------------------------
     def start_menu(self, screen, font) -> Any:
         """
-        Show a polished start menu, return chosen option as
-        a string ('start_game' or 'quit').
-        Uses rounded buttons with hover effect.
+        Show a start menu and return chosen option.
+        Returns: 'start_game' or 'quit'
         """
         running = True
         selected_option = 0
@@ -31,7 +31,7 @@ class UI:
             sw, sh = screen.get_size()
             mouse_x, mouse_y = pygame.mouse.get_pos()
 
-            # Draw title
+            # Title
             title_surf = font.render("Commanders' Arena", True, (255, 220, 100))
             screen.blit(
                 title_surf, (sw // 2 - title_surf.get_width() // 2, sh // 4 - 60)
@@ -83,6 +83,9 @@ class UI:
 
             clock.tick(30)
 
+    # ------------------------------
+    # Game Input
+    # ------------------------------
     def handle_event(
         self,
         event: pygame.event.Event,
@@ -95,7 +98,13 @@ class UI:
         """
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             px, py = event.pos
-            x, y = pixel_to_grid(px, py, self.cell_size)
+
+            # Ignore clicks in the sidebar
+            if px < SIDEBAR_WIDTH:
+                return None
+
+            # Adjust for sidebar offset
+            x, y = pixel_to_grid(px - SIDEBAR_WIDTH, py, self.cell_size)
 
             # Find unit at clicked position
             target = next(
@@ -132,6 +141,9 @@ class UI:
 
         return None
 
+    # ------------------------------
+    # Apply Actions
+    # ------------------------------
     def apply_action(
         self, action: Dict[str, Any], api: "GameAPI"
     ) -> Dict[str, Optional[int]]:

@@ -11,6 +11,7 @@ from frontend.renderer import Renderer
 from frontend.ui import UI
 from utils.constants import (
     CELL_SIZE,
+    SIDEBAR_WIDTH,
     GRID_H,
     GRID_W,
     SCREEN_H,
@@ -56,7 +57,7 @@ def create_game():
 def main():
     pygame.init()
     pygame.font.init()
-    screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
+    screen = pygame.display.set_mode((SCREEN_W + SIDEBAR_WIDTH, SCREEN_H))
     pygame.display.set_caption("Commanders' Arena")
     font = pygame.font.Font(None, 28)
 
