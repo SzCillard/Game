@@ -93,12 +93,25 @@ def create_default_map(w: int, h: int) -> List[List[TileType]]:
 
 
 def create_hilly_map(w: int, h: int) -> List[List[TileType]]:
-    """Lots of hills scattered across the map."""
+    """Creates a map with many hills in the middle horizontally and a few scattered elsewhere."""
+    # Start with a plain map
     m = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
-    for y in range(h):
+
+    # Middle horizontal band of hills
+    mid_h = h // 2
+    band_height = 3  # 3 rows of hills centered at mid_h
+    for y in range(mid_h - band_height // 2, mid_h + band_height // 2 + 1):
         for x in range(w):
-            if (x + y) % 3 == 0:  # scatter hills
+            if random.random() < 0.8:  # 80% chance to be a hill
                 m[y][x] = TileType.HILL
+
+    # Scatter a few hills in other parts
+    for _ in range((w * h) // 15):  # number of random hills
+        x = random.randint(0, w - 1)
+        y = random.randint(0, h - 1)
+        if m[y][x] == TileType.PLAIN:
+            m[y][x] = TileType.HILL
+
     return m
 
 
@@ -118,29 +131,47 @@ def create_mountainous_map(w: int, h: int) -> List[List[TileType]]:
     """Impassable mountains blocking areas."""
     m = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
     for i in range(min(w, h)):
-        if i % 2 == 0:
+        if i % 2 == 0 or i > 7 or i < 9:
             m[i][i] = TileType.MOUNTAIN
     return m
 
 
 def create_mixed_map(w: int, h: int) -> List[List[TileType]]:
-    """Balanced mix of hills, water, and some mountains."""
+    """Balanced map with plains, hills, water, and some mountains in simple clusters."""
     m = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
-    for y in range(h):
+
+    # --- Horizontal hills band in the middle ---
+    mid_h = h // 2
+    for y in range(mid_h - 1, mid_h + 2):  # 3 rows thick
         for x in range(w):
-            if (x + y) % 5 == 0:
+            if random.random() < 0.7:  # 70% chance to be a hill
                 m[y][x] = TileType.HILL
-            elif (x * y) % 7 == 0:
-                m[y][x] = TileType.WATER
-            elif (x - y) % 6 == 0:
-                m[y][x] = TileType.MOUNTAIN
+
+    # --- Water clusters ---
+    num_lakes = max(1, w * h // 50)
+    for _ in range(num_lakes):
+        lake_x = random.randint(0, w - 3)
+        lake_y = random.randint(0, h - 3)
+        for dy in range(3):
+            for dx in range(3):
+                if random.random() < 0.8:
+                    m[lake_y + dy][lake_x + dx] = TileType.WATER
+
+    # --- Mountain clusters ---
+    num_mountains = max(1, w * h // 80)
+    for _ in range(num_mountains):
+        mount_x = random.randint(0, w - 2)
+        mount_y = random.randint(0, h - 2)
+        for dy in range(2):
+            for dx in range(2):
+                if random.random() < 0.7:
+                    m[mount_y + dy][mount_x + dx] = TileType.MOUNTAIN
+
     return m
 
 
 MAP_GENERATORS = {
     "hilly": create_hilly_map,
-    "watery": create_watery_map,
-    "mountainous": create_mountainous_map,
     "mixed": create_mixed_map,
 }
 
