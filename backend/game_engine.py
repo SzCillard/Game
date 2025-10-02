@@ -1,6 +1,4 @@
-# backend/game_engine.py
 import pygame
-
 from utils.constants import SCREEN_H, TeamType
 from utils.messages import add_message
 
@@ -28,6 +26,15 @@ class GameEngine:
                 )
                 if action:
                     result = self.game_api.apply_ui_action(action)
+
+                    # --- Sidebar button handling ---
+                    if result.get("quit_requested"):
+                        return False
+                    if result.get("menu_requested"):
+                        return "menu"
+                    if result.get("help_requested"):
+                        add_message("📖 Help clicked (todo: implement)")
+
                     self.selected_id = result.get("selected_id", self.selected_id)
         return True
 
@@ -36,7 +43,6 @@ class GameEngine:
         self.screen.fill((240, 240, 240))
         self.game_api.draw(self.screen, snapshot, self.selected_id)
 
-        # --- Highlight movement and attack ranges ---
         if self.selected_id is not None:
             unit = next(
                 (u for u in self.game_api.get_units() if u.id == self.selected_id), None
@@ -82,8 +88,11 @@ class GameEngine:
     def run(self):
         game_active = True
         while game_active:
-            if not self.handle_player_events():
-                return False  # user quit
+            res = self.handle_player_events()
+            if res is False:
+                return False
+            if res == "menu":
+                return "menu"
 
             self.run_turns()
             self.render()

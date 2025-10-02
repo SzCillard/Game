@@ -23,6 +23,7 @@ class Renderer:
         self.cell_size = cell_size
         self.font = font
         self.unit_images = self._load_unit_images()
+        self.sidebar_buttons = {}  # dict of {label: pygame.Rect}
 
     def _load_unit_images(self):
         """Preload all unit images into a dict for quick access."""
@@ -66,10 +67,10 @@ class Renderer:
 
         for u in units:
             unit_type = UnitType[u["name"].upper()]
-            team = TeamType(u["team"])
+            team = u["team"] if isinstance(u["team"], TeamType) else TeamType(u["team"])
 
             rect = pygame.Rect(
-                u["x"] * self.cell_size + SIDEBAR_WIDTH,  # shift right
+                u["x"] * self.cell_size + SIDEBAR_WIDTH,
                 u["y"] * self.cell_size,
                 self.cell_size,
                 self.cell_size,
@@ -138,6 +139,7 @@ class Renderer:
     # ------------------------------
     # Sidebar
     # ------------------------------
+
     def draw_sidebar(self, screen, board_snapshot, selected_id):
         sidebar_rect = pygame.Rect(0, 0, SIDEBAR_WIDTH, SCREEN_H)
         pygame.draw.rect(screen, (230, 230, 230), sidebar_rect)  # light gray bg
@@ -145,44 +147,85 @@ class Renderer:
             screen, (100, 100, 100), (SIDEBAR_WIDTH, 0), (SIDEBAR_WIDTH, SCREEN_H), 2
         )
 
+        y = 20  # initial y offset
+
+        # --- Selected Unit Info ---
         if selected_id is not None:
             selected = next(
                 (u for u in board_snapshot["units"] if u["id"] == selected_id), None
             )
             if selected:
-                y = 20
-                screen.blit(
-                    self.font.render(f"{selected['name']}", True, (0, 0, 0)), (20, y)
+                # Unit Name
+                name_surf = self.font.render(
+                    f"{selected['name'].capitalize()}", True, (0, 0, 0)
                 )
+                screen.blit(name_surf, (20, y))
                 y += 30
-                screen.blit(
-                    self.font.render(f"HP: {selected['health']}", True, (0, 0, 0)),
-                    (20, y),
-                )
-                y += 30
-                screen.blit(
-                    self.font.render(
-                        f"Move points: {selected['move_points']}", True, (0, 0, 0)
-                    ),
-                    (20, y),
-                )
-                y += 30
-                screen.blit(
-                    self.font.render(
-                        f"Attack power: {selected['attack_power']}", True, (0, 0, 0)
-                    ),
-                    (20, y),
-                )
-                y += 30
-                screen.blit(
-                    self.font.render(
-                        f"Attack range: {selected['attack_range']}", True, (0, 0, 0)
-                    ),
-                    (20, y),
-                )
 
-        # Bottom menu
-        menu_y = SCREEN_H - 100
-        for i, text in enumerate(["[M] Menu", "[Q] Quit", "[H] Help"]):
-            surf = self.font.render(text, True, (50, 50, 50))
-            screen.blit(surf, (20, menu_y + i * 30))
+                # HP text only (no bar)
+                hp_text = self.font.render(f"HP: {selected['health']}", True, (0, 0, 0))
+                screen.blit(hp_text, (20, y))
+                y += 30
+
+                # Move points
+                move_surf = self.font.render(
+                    f"Move points: {selected['move_points']}", True, (0, 0, 0)
+                )
+                screen.blit(move_surf, (20, y))
+                y += 30
+
+                # Attack power
+                atk_surf = self.font.render(
+                    f"Attack power: {selected['attack_power']}", True, (0, 0, 0)
+                )
+                screen.blit(atk_surf, (20, y))
+                y += 30
+
+                # Attack range
+                range_surf = self.font.render(
+                    f"Attack range: {selected['attack_range']}", True, (0, 0, 0)
+                )
+                screen.blit(range_surf, (20, y))
+                y += 30
+
+        # --- Bottom Menu Buttons ---
+        menu_items = ["Menu", "Quit", "Help"]
+        btn_width, btn_height = SIDEBAR_WIDTH - 40, 40
+        menu_y = SCREEN_H - (len(menu_items) * (btn_height + 10)) - 20
+
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+
+        self.sidebar_buttons.clear()
+        for i, text in enumerate(menu_items):
+            btn_x = 20
+            btn_y = menu_y + i * (btn_height + 10)
+            rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
+
+            # store for click detection
+            self.sidebar_buttons[text] = rect
+
+            # hover effect
+            if rect.collidepoint(mouse_x, mouse_y):
+                color = (255, 230, 80)
+            else:
+                color = (200, 200, 200)
+
+            pygame.draw.rect(screen, color, rect, border_radius=8)
+            pygame.draw.rect(screen, (100, 100, 100), rect, width=2, border_radius=8)
+
+            # label
+            label = self.font.render(text, True, (20, 20, 20))
+            screen.blit(
+                label,
+                (
+                    rect.centerx - label.get_width() // 2,
+                    rect.centery - label.get_height() // 2,
+                ),
+            )
+
+    def handle_sidebar_click(self, pos):
+        """Check if a sidebar button was clicked, return its label or None."""
+        for label, rect in self.sidebar_buttons.items():
+            if rect.collidepoint(pos):
+                return label
+        return None
