@@ -9,7 +9,14 @@ from backend.logic import GameLogic
 from backend.units import Archer, Swordsman
 from frontend.renderer import Renderer
 from frontend.ui import UI
-from utils.constants import CELL_SIZE, GRID_H, GRID_W, SCREEN_H, SCREEN_W, TeamType
+from utils.constants import (
+    CELL_SIZE,
+    GRID_H,
+    GRID_W,
+    SCREEN_H,
+    SCREEN_W,
+    TeamType,
+)
 from utils.logging import create_log_file, logger
 
 
