@@ -27,6 +27,38 @@ class TileHighlightType(IntEnum):
     BOTH = 3
 
 
+UNIT_STATS = {
+    "Swordsman": {
+        "health": 120,
+        "armor": 40,
+        "attack_power": 30,
+        "attack_range": 1,
+        "move_range": 2.0,
+    },
+    "Archer": {
+        "health": 70,
+        "armor": 15,
+        "attack_power": 30,
+        "attack_range": 3,
+        "move_range": 3.0,
+    },
+    "Horseman": {
+        "health": 100,
+        "armor": 25,
+        "attack_power": 50,
+        "attack_range": 1,
+        "move_range": 4.0,
+    },
+    "Spearman": {
+        "health": 110,
+        "armor": 45,
+        "attack_power": 50,
+        "attack_range": 1,
+        "move_range": 2.0,
+    },
+}
+
+
 # Effectiveness multipliers: attacker -> defender
 EFFECTIVENESS = {
     "Archer": {"Swordsman": 1.0, "Horseman": 0.8, "Spearman": 1.0},

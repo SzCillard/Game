@@ -1,7 +1,7 @@
 # backend/units.py
 from abc import ABC
 
-from utils.constants import TeamType, UnitType
+from utils.constants import UNIT_STATS, TeamType, UnitType
 
 
 class Unit(ABC):
@@ -13,6 +13,7 @@ class Unit(ABC):
         x: int,
         y: int,
         team: TeamType,
+        max_hp: int,
         health: int,
         armor: int,
         attack_power: int,
@@ -25,6 +26,7 @@ class Unit(ABC):
         self.x: int = x
         self.y: int = y
         self.team: TeamType = team
+        self.max_hp: int = health  # set by subclass
         self.health: int = health
         self.armor: int = armor
         self.attack_power: int = attack_power
@@ -39,59 +41,67 @@ class Unit(ABC):
 
 class Swordsman(Unit):
     def __init__(self, x: int, y: int, team: TeamType):
+        stats = UNIT_STATS["Swordsman"]
         super().__init__(
             name=UnitType.SWORDSMAN,
             x=x,
             y=y,
             team=team,
-            health=20,
-            armor=4,
-            attack_power=6,
-            attack_range=1,
-            move_range=2.0,
+            max_hp=stats["health"],
+            health=stats["health"],
+            armor=stats["armor"],
+            attack_power=stats["attack_power"],
+            attack_range=stats["attack_range"],
+            move_range=stats["move_range"],
         )
 
 
 class Archer(Unit):
     def __init__(self, x: int, y: int, team: TeamType):
+        stats = UNIT_STATS["Archer"]
         super().__init__(
             name=UnitType.ARCHER,
             x=x,
             y=y,
             team=team,
-            health=12,
-            armor=2,
-            attack_power=5,
-            attack_range=3,
-            move_range=3.0,
+            max_hp=stats["health"],
+            health=stats["health"],
+            armor=stats["armor"],
+            attack_power=stats["attack_power"],
+            attack_range=stats["attack_range"],
+            move_range=stats["move_range"],
         )
 
 
 class Horseman(Unit):
     def __init__(self, x: int, y: int, team: TeamType):
+        stats = UNIT_STATS["Horseman"]
         super().__init__(
             name=UnitType.HORSEMAN,
             x=x,
             y=y,
             team=team,
-            health=15,
-            armor=6,
-            attack_power=6,
-            attack_range=1,
-            move_range=4.0,
+            max_hp=stats["health"],
+            health=stats["health"],
+            armor=stats["armor"],
+            attack_power=stats["attack_power"],
+            attack_range=stats["attack_range"],
+            move_range=stats["move_range"],
         )
 
 
 class Spearman(Unit):
     def __init__(self, x: int, y: int, team: TeamType):
+        stats = UNIT_STATS["Spearman"]
         super().__init__(
             name=UnitType.SPEARMAN,
             x=x,
             y=y,
             team=team,
-            health=10,
-            armor=7,
-            attack_power=5,
-            attack_range=1,
-            move_range=2.0,
+            max_hp=stats["health"],
+            health=stats["health"],
+            armor=stats["armor"],
+            attack_power=stats["attack_power"],
+            attack_range=stats["attack_range"],
+            move_range=stats["move_range"],
         )

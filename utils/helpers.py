@@ -213,7 +213,7 @@ def calculate_damage(attacker, defender):
     """Combined formula with percentage armor, type multipliers, and health scaling."""
 
     # --- 1) Base Power scaled by health ---
-    effective_power = attacker.attack_power * (attacker.health / attacker.max_health)
+    effective_power = attacker.attack_power * (attacker.health / attacker.max_hp)
 
     # --- 2) Armor as percentage reduction ---
     reduction = 100 / (100 + defender.armor * 10)  # e.g. armor 5 ~ 33% reduction

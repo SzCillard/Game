@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 from backend.board import GameState, TileType
 from backend.units import Unit
 from utils.constants import EPSILON
-from utils.helpers import compute_min_cost_gs, manhattan
+from utils.helpers import calculate_damage, compute_min_cost_gs, manhattan
 from utils.messages import add_message
 
 
@@ -78,19 +78,19 @@ class GameLogic:
         if attacker.has_attacked or not self.can_attack(attacker, defender):
             return False
 
+        dmg = calculate_damage(attacker, defender)
+
         if attacker.attack_range > 1:  # ranged (no retaliation)
-            dmg = max(0, attacker.attack_power - getattr(defender, "armor", 0))
             defender.health -= dmg
             add_message(f"{attacker.name} shot {defender.name} for {dmg}.")
         else:  # melee with retaliation
-            att = max(0, attacker.attack_power - getattr(defender, "armor", 0))
-            defender.health -= att
-            add_message(f"{attacker.name} hit {defender.name} for {att}.")
+            defender.health -= dmg
+            add_message(f"{attacker.name} hit {defender.name} for {dmg}.")
             if defender.health > 0:  # only retaliate if alive
-                deff = max(0, defender.attack_power - getattr(attacker, "armor", 0))
-                attacker.health -= deff
-                if deff > 0:
-                    add_message(f"{defender.name} retaliated for {deff}.")
+                retaliation = calculate_damage(defender, attacker)
+                attacker.health -= retaliation
+                if retaliation > 0:
+                    add_message(f"{defender.name} retaliated for {retaliation}.")
 
         attacker.has_attacked = True
         attacker.move_points = 0
