@@ -1,20 +1,20 @@
 # frontend/renderer.py
-import pygame
 import os
+
+import pygame
 
 from utils.constants import (
     GRID_COLOR,
     HP_BG,
     HP_FG,
+    SCREEN_H,
+    SIDEBAR_WIDTH,
     TEAM_COLORS,
     TILE_COLORS,
     TILE_HIGHLIGHT_COLOR,
+    TeamType,
     TileHighlightType,
     UnitType,
-    TeamType,
-    SCREEN_W,
-    SCREEN_H,
-    SIDEBAR_WIDTH,
 )
 
 

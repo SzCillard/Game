@@ -93,7 +93,8 @@ def create_default_map(w: int, h: int) -> List[List[TileType]]:
 
 
 def create_hilly_map(w: int, h: int) -> List[List[TileType]]:
-    """Creates a map with many hills in the middle horizontally and a few scattered elsewhere."""
+    """Creates a map with many hills in the middle horizontally and
+    a few scattered elsewhere."""
     # Start with a plain map
     m = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
 

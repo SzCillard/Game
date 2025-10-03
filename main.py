@@ -11,11 +11,11 @@ from frontend.renderer import Renderer
 from frontend.ui import UI
 from utils.constants import (
     CELL_SIZE,
-    SIDEBAR_WIDTH,
     GRID_H,
     GRID_W,
     SCREEN_H,
     SCREEN_W,
+    SIDEBAR_WIDTH,
     TeamType,
 )
 from utils.logging import create_log_file, logger

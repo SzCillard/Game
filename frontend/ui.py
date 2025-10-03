@@ -1,15 +1,17 @@
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
 import pygame
 
 if TYPE_CHECKING:
     from api.api import GameAPI
+    from frontend.renderer import Renderer
 
-from utils.constants import TeamType, SIDEBAR_WIDTH
+from utils.constants import SIDEBAR_WIDTH, TeamType
 from utils.helpers import pixel_to_grid
 
 
 class UI:
-    def __init__(self, cell_size: int, renderer=None):
+    def __init__(self, cell_size: int, renderer: "Renderer"):
         self.cell_size = cell_size
         self.renderer = renderer
 

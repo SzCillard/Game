@@ -1,4 +1,5 @@
 import pygame
+
 from utils.constants import SCREEN_H, TeamType
 from utils.messages import add_message
 
