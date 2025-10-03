@@ -3,7 +3,7 @@ import heapq
 import math
 from typing import Any, Dict, List, Optional, Tuple
 
-from utils.constants import DIRS, TERRAIN_MOVE_COST, TileType
+from utils.constants import DIRS, EFFECTIVENESS, TERRAIN_MOVE_COST, TileType
 
 
 def pixel_to_grid(px: int, py: int, cell_size: int):
@@ -207,3 +207,30 @@ def next_step_toward_snapshot(
                 heapq.heappush(pq, (nc, nx, ny))
 
     return None
+
+
+def calculate_damage(attacker, defender):
+    """Combined formula with percentage armor, type multipliers, and health scaling."""
+
+    # --- 1) Base Power scaled by health ---
+    effective_power = attacker.attack_power * (attacker.health / attacker.max_health)
+
+    # --- 2) Armor as percentage reduction ---
+    reduction = 100 / (100 + defender.armor * 10)  # e.g. armor 5 ~ 33% reduction
+    reduced = effective_power * reduction
+
+    # --- 3) Type effectiveness (RPS multipliers) ---
+    att_type = (
+        attacker.name.name if hasattr(attacker.name, "name") else str(attacker.name)
+    )
+    def_type = (
+        defender.name.name if hasattr(defender.name, "name") else str(defender.name)
+    )
+
+    multiplier = EFFECTIVENESS.get(att_type.capitalize(), {}).get(
+        def_type.capitalize(), 1.0
+    )
+    final_damage = reduced * multiplier
+
+    # Always at least 1 damage if it connects
+    return max(1, int(final_damage))
