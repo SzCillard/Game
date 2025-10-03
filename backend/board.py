@@ -58,6 +58,7 @@ class GameState:
                     "y": u.y,
                     "team": u.team,
                     "health": u.health,
+                    "armor": u.armor,
                     "attack_power": u.attack_power,
                     "attack_range": u.attack_range,
                     "move_range": u.move_range,

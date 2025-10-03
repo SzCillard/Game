@@ -14,6 +14,7 @@ class Unit(ABC):
         y: int,
         team: TeamType,
         health: int,
+        armor: int,
         attack_power: int,
         attack_range: int,
         move_range: float,
@@ -25,6 +26,7 @@ class Unit(ABC):
         self.y: int = y
         self.team: TeamType = team
         self.health: int = health
+        self.armor: int = armor
         self.attack_power: int = attack_power
         self.attack_range: int = attack_range
         self.move_range: float = move_range
@@ -42,8 +44,9 @@ class Swordsman(Unit):
             x=x,
             y=y,
             team=team,
-            health=12,
-            attack_power=4,
+            health=20,
+            armor=4,
+            attack_power=6,
             attack_range=1,
             move_range=2.0,
         )
@@ -56,8 +59,39 @@ class Archer(Unit):
             x=x,
             y=y,
             team=team,
-            health=8,
+            health=12,
+            armor=2,
             attack_power=5,
             attack_range=3,
             move_range=3.0,
+        )
+
+
+class Horseman(Unit):
+    def __init__(self, x: int, y: int, team: TeamType):
+        super().__init__(
+            name=UnitType.HORSEMAN,
+            x=x,
+            y=y,
+            team=team,
+            health=15,
+            armor=6,
+            attack_power=6,
+            attack_range=1,
+            move_range=4.0,
+        )
+
+
+class Spearman(Unit):
+    def __init__(self, x: int, y: int, team: TeamType):
+        super().__init__(
+            name=UnitType.SPEARMAN,
+            x=x,
+            y=y,
+            team=team,
+            health=10,
+            armor=7,
+            attack_power=5,
+            attack_range=1,
+            move_range=2.0,
         )
