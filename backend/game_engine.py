@@ -29,10 +29,19 @@ class GameEngine:
                     result = self.game_api.apply_ui_action(action)
 
                     # --- Sidebar button handling ---
-                    if result.get("quit_requested"):
-                        return False
+                    if result.get("end_turn_requested"):
+                        # Force all player's units to "acted"
+                        for u in self.game_api.get_units():
+                            if u.team == TeamType.PLAYER:
+                                u.has_acted = True
+                        self.selected_id = None
+
                     if result.get("menu_requested"):
                         return "menu"
+
+                    if result.get("quit_requested"):
+                        return False
+
                     if result.get("help_requested"):
                         add_message("📖 Help clicked (todo: implement)")
 

@@ -189,7 +189,7 @@ class Renderer:
                 y += 30
 
         # --- Bottom Menu Buttons ---
-        menu_items = ["Menu", "Quit", "Help"]
+        menu_items = ["End Turn", "Menu", "Quit", "Help"]
         btn_width, btn_height = SIDEBAR_WIDTH - 40, 40
         menu_y = SCREEN_H - (len(menu_items) * (btn_height + 10)) - 20
 

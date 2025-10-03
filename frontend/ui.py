@@ -91,10 +91,12 @@ class UI:
             # Sidebar button clicks
             if px < SIDEBAR_WIDTH and self.renderer:
                 clicked = self.renderer.handle_sidebar_click((px, py))
-                if clicked == "Quit":
-                    return {"type": "quit"}
+                if clicked == "End Turn":
+                    return {"type": "end_turn"}
                 elif clicked == "Menu":
                     return {"type": "menu"}
+                elif clicked == "Quit":
+                    return {"type": "quit"}
                 elif clicked == "Help":
                     return {"type": "help"}
                 return None
@@ -152,13 +154,12 @@ class UI:
             defender = next(u for u in api.get_units() if u.id == action["defender_id"])
             api.request_attack(attacker, defender)
             return {"selected_id": None}
-
-        elif kind == "quit":
-            return {"selected_id": None, "quit_requested": True}
-
+        if kind == "end_turn":
+            return {"selected_id": None, "end_turn_requested": True}
         elif kind == "menu":
             return {"selected_id": None, "menu_requested": True}
-
+        elif kind == "quit":
+            return {"selected_id": None, "quit_requested": True}
         elif kind == "help":
             print("📖 Help button clicked")
             return {"selected_id": None, "help_requested": True}
