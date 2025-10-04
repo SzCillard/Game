@@ -3,7 +3,14 @@ import heapq
 import math
 from typing import Any, Dict, List, Optional, Tuple
 
-from utils.constants import DIRS, EFFECTIVENESS, TERRAIN_MOVE_COST, TileType
+from utils.constants import (
+    DIRS,
+    EFFECTIVENESS,
+    TERRAIN_ATTACK_BONUS,
+    TERRAIN_DEFENSE_BONUS,
+    TERRAIN_MOVE_COST,
+    TileType,
+)
 
 
 def pixel_to_grid(px: int, py: int, cell_size: int):
@@ -209,14 +216,15 @@ def next_step_toward_snapshot(
     return None
 
 
-def calculate_damage(attacker, defender):
-    """Combined formula with percentage armor, type multipliers, and health scaling."""
+def calculate_damage(attacker, defender, game_state=None):
+    """Combined formula with armor %, type multipliers,
+    health scaling, and terrain bonuses."""
 
     # --- 1) Base Power scaled by health ---
     effective_power = attacker.attack_power * (attacker.health / attacker.max_hp)
 
     # --- 2) Armor as percentage reduction ---
-    reduction = 100 / (100 + defender.armor * 10)  # e.g. armor 5 ~ 33% reduction
+    reduction = 100 / (100 + defender.armor * 10)  # e.g. armor 5 ≈ 33% reduction
     reduced = effective_power * reduction
 
     # --- 3) Type effectiveness (RPS multipliers) ---
@@ -227,10 +235,27 @@ def calculate_damage(attacker, defender):
         defender.name.name if hasattr(defender.name, "name") else str(defender.name)
     )
 
-    multiplier = EFFECTIVENESS.get(att_type.capitalize(), {}).get(
+    type_mult = EFFECTIVENESS.get(att_type.capitalize(), {}).get(
         def_type.capitalize(), 1.0
     )
-    final_damage = reduced * multiplier
+
+    # --- 4) Terrain modifiers ---
+    atk_bonus = 0.0
+    def_bonus = 0.0
+
+    if game_state:
+        try:
+            atk_tile = game_state.tile_map[attacker.y][attacker.x]
+            def_tile = game_state.tile_map[defender.y][defender.x]
+            atk_bonus = TERRAIN_ATTACK_BONUS.get(atk_tile, 0.0)
+            def_bonus = TERRAIN_DEFENSE_BONUS.get(def_tile, 0.0)
+        except Exception:
+            pass  # fallback if tiles missing (e.g. testing)
+
+    terrain_mult = (1 + atk_bonus) * (1 - def_bonus)
+
+    # --- 5) Final combined damage ---
+    final_damage = reduced * type_mult * terrain_mult
 
     # Always at least 1 damage if it connects
     return max(1, int(final_damage))

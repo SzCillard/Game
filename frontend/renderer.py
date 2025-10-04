@@ -9,6 +9,8 @@ from utils.constants import (
     SCREEN_H,
     SIDEBAR_WIDTH,
     TEAM_COLORS,
+    TERRAIN_ATTACK_BONUS,
+    TERRAIN_DEFENSE_BONUS,
     TILE_COLORS,
     TILE_HIGHLIGHT_COLOR,
     TeamType,
@@ -252,6 +254,8 @@ class Renderer:
                 screen.blit(range_surf, (20, y))
                 y += 30
 
+                # Terrain bonuses
+                self._draw_terrain_bonus(board_snapshot, selected, screen, y)
         # --- Bottom Menu Buttons ---
         menu_items = ["End Turn", "Menu", "Quit", "Help"]
         btn_width, btn_height = SIDEBAR_WIDTH - 40, 40
@@ -286,6 +290,32 @@ class Renderer:
                     rect.centery - label.get_height() // 2,
                 ),
             )
+
+    def _draw_terrain_bonus(self, board_snapshot, selected, screen, y):
+        # --- Terrain Bonuses ---
+        tiles = board_snapshot["tiles"]
+        ux, uy = selected["x"], selected["y"]
+        if 0 <= uy < len(tiles) and 0 <= ux < len(tiles[0]):
+            tile = tiles[uy][ux]
+            def_bonus = TERRAIN_DEFENSE_BONUS.get(tile, 0)
+            atk_bonus = TERRAIN_ATTACK_BONUS.get(tile, 0)
+
+            tile_name = tile.name.capitalize() if hasattr(tile, "name") else str(tile)
+            bonus_text = f"{tile_name}: "
+
+            bonus_parts = []
+            if def_bonus != 0:
+                bonus_parts.append(f"{int(def_bonus * 100)}% DEF")
+            if atk_bonus != 0:
+                bonus_parts.append(f"{int(atk_bonus * 100)}% ATK")
+            if not bonus_parts:
+                bonus_parts.append("No bonus")
+
+            bonus_text += ", ".join(bonus_parts)
+
+            terr_surf = self.font.render(bonus_text, True, (0, 0, 0))
+            screen.blit(terr_surf, (20, y))
+            y += 30
 
     def handle_sidebar_click(self, pos):
         """Check if a sidebar button was clicked, return its label or None."""

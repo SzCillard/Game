@@ -48,6 +48,24 @@ class TileHighlightType(IntEnum):
     BOTH = 3
 
 
+# Defense bonus = reduces incoming damage by %
+# Attack bonus = increases outgoing damage by %
+
+TERRAIN_DEFENSE_BONUS = {
+    TileType.PLAIN: 0.0,  # no bonus
+    TileType.HILL: 0.2,
+    TileType.MOUNTAIN: 0.0,
+    TileType.WATER: 0.1,
+}
+
+TERRAIN_ATTACK_BONUS = {
+    TileType.PLAIN: 0.0,
+    TileType.HILL: 0.1,  # 10% more attack power
+    TileType.MOUNTAIN: 0.0,
+    TileType.WATER: -0.1,
+}
+
+
 UNIT_STATS = {
     "Swordsman": {
         "health": 110,

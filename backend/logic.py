@@ -78,7 +78,7 @@ class GameLogic:
         if attacker.has_attacked or not self.can_attack(attacker, defender):
             return False
 
-        dmg = calculate_damage(attacker, defender)
+        dmg = calculate_damage(attacker, defender, self.gs)
 
         # --- store damage info for UI ---
         defender.last_damage = dmg
