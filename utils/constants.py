@@ -2,6 +2,27 @@
 from enum import Enum, IntEnum
 
 
+class Color(Enum):
+    # Basic palette
+    WHITE = (255, 255, 255)
+    BLACK = (0, 0, 0)
+    GRAY = (150, 150, 150)
+    LIGHT_GRAY = (230, 230, 230)
+    DARK_GRAY = (60, 60, 60)
+
+    RED = (200, 50, 50)
+    GREEN = (0, 200, 0)
+    YELLOW = (255, 230, 80)
+    BLUE = (0, 150, 255)
+    CYAN = (0, 153, 153)
+
+    # Optional: highlights, terrain tints
+    GRASS = (153, 204, 140)
+    HILL = (195, 205, 170)
+    MOUNTAIN = (140, 140, 140)
+    WATER = (0, 153, 153)
+
+
 class UnitType(Enum):
     SWORDSMAN = "Swordsman"
     ARCHER = "Archer"
@@ -29,7 +50,7 @@ class TileHighlightType(IntEnum):
 
 UNIT_STATS = {
     "Swordsman": {
-        "health": 120,
+        "health": 110,
         "armor": 40,
         "attack_power": 50,
         "attack_range": 1,
@@ -44,14 +65,14 @@ UNIT_STATS = {
     },
     "Horseman": {
         "health": 100,
-        "armor": 25,
+        "armor": 30,
         "attack_power": 50,
         "attack_range": 1,
         "move_range": 4.0,
     },
     "Spearman": {
         "health": 110,
-        "armor": 45,
+        "armor": 35,
         "attack_power": 50,
         "attack_range": 1,
         "move_range": 2.0,
@@ -83,15 +104,15 @@ SIDEBAR_WIDTH = 200
 FPS = 60
 
 TEAM_COLORS = {
-    TeamType.PLAYER: (0, 150, 255),
-    TeamType.AI: (200, 50, 50),
+    TeamType.PLAYER: Color.BLUE.value,
+    TeamType.AI: Color.RED.value,
 }
 
 TILE_COLORS = {
-    TileType.PLAIN: (153, 204, 140),
-    TileType.HILL: (195, 205, 170),
-    TileType.MOUNTAIN: (140, 140, 140),
-    TileType.WATER: (0, 153, 153),
+    TileType.PLAIN: Color.GRASS.value,
+    TileType.HILL: Color.HILL.value,
+    TileType.MOUNTAIN: Color.MOUNTAIN.value,
+    TileType.WATER: Color.WATER.value,
 }
 TILE_HIGHLIGHT_COLOR = {
     TileHighlightType.MOVE: (100, 150, 255),
@@ -102,6 +123,7 @@ TILE_HIGHLIGHT_COLOR = {
 GRID_COLOR = (50, 90, 50)
 HP_BG = (0, 0, 0)
 HP_FG = (255, 255, 255)
+
 
 DIRS = (
     (1, 0),
