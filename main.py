@@ -6,7 +6,7 @@ from api.api import GameAPI
 from backend.board import GameState, create_random_map
 from backend.game_engine import GameEngine
 from backend.logic import GameLogic
-from backend.units import Archer, Swordsman
+from backend.units import Archer, Horseman, Spearman, Swordsman
 from frontend.renderer import Renderer
 from frontend.ui import UI
 from utils.constants import (
@@ -43,10 +43,18 @@ def create_game(ui: UI):
     )
 
     # Add units
-    p1 = [Swordsman(1, 1, team=TeamType.PLAYER), Archer(2, 2, team=TeamType.PLAYER)]
+    p1 = [
+        Swordsman(1, 1, team=TeamType.PLAYER),
+        Archer(2, 2, team=TeamType.PLAYER),
+        Horseman(1, 2, team=TeamType.PLAYER),
+        Spearman(2, 1, team=TeamType.PLAYER),
+    ]
     p2 = [
         Swordsman(GRID_W - 2, GRID_H - 2, team=TeamType.AI),
         Archer(GRID_W - 3, GRID_H - 2, team=TeamType.AI),
+        Horseman(GRID_W - 2, GRID_H - 3, team=TeamType.AI),
+        Horseman(GRID_W - 3, GRID_H - 3, team=TeamType.AI),
+        Spearman(GRID_W - 4, GRID_H - 2, team=TeamType.AI),
     ]
     for u in p1 + p2:
         game_api.game_board.add_unit(u)

@@ -5,7 +5,7 @@ from backend.board import GameState, TileType
 from backend.units import Unit
 from utils.constants import DAMAGE_DISPLAY_TIME, EPSILON
 from utils.helpers import calculate_damage, compute_min_cost_gs, manhattan
-from utils.messages import add_message
+from utils.messages import logger
 
 
 class GameLogic:
@@ -48,12 +48,12 @@ class GameLogic:
 
     def move_unit(self, unit: Unit, to_x: int, to_y: int) -> bool:
         if not self.can_move(unit, to_x, to_y):
-            add_message(f"{unit.name} cannot move there [{to_x};{to_y}].")
+            logger(f"{unit.name} cannot move there [{to_x};{to_y}].")
             return False
 
         cost = compute_min_cost_gs(self.gs, (unit.x, unit.y), (to_x, to_y))
         if cost > unit.move_points:
-            add_message(f"{unit.name} does not have enough movement points.")
+            logger(f"{unit.name} does not have enough movement points.")
             return False
 
         unit.x = to_x
@@ -62,7 +62,7 @@ class GameLogic:
         if unit.move_points <= EPSILON:
             unit.has_acted = True
 
-        add_message(
+        logger(
             f"{unit.name} moved to ({to_x},{to_y}), points left: {unit.move_points}."
         )
         return True
@@ -86,15 +86,15 @@ class GameLogic:
 
         if attacker.attack_range > 1:  # ranged (no retaliation)
             defender.health -= dmg
-            add_message(f"{attacker.name} shot {defender.name} for {dmg}.")
+            logger(f"{attacker.name} shot {defender.name} for {dmg}.")
         else:  # melee with retaliation
             defender.health -= dmg
-            add_message(f"{attacker.name} hit {defender.name} for {dmg}.")
+            logger(f"{attacker.name} hit {defender.name} for {dmg}.")
             if defender.health > 0:  # only retaliate if alive
                 retaliation = calculate_damage(defender, attacker)
                 attacker.health -= retaliation
                 if retaliation > 0:
-                    add_message(f"{defender.name} retaliated for {retaliation}.")
+                    logger(f"{defender.name} retaliated for {retaliation}.")
 
         attacker.has_attacked = True
         attacker.move_points = 0
