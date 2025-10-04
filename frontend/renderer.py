@@ -4,6 +4,7 @@ import os
 import pygame
 
 from utils.constants import (
+    DAMAGE_DISPLAY_TIME,
     GRID_COLOR,
     SCREEN_H,
     SIDEBAR_WIDTH,
@@ -191,7 +192,7 @@ class Renderer:
         font = pygame.font.Font(None, 24)
         dmg_text = font.render(f"-{dmg}", True, (255, 0, 0))
 
-        total_time = 30  # frames
+        total_time = DAMAGE_DISPLAY_TIME  # frames
         elapsed = total_time - timer
         offset_y = elapsed // 2  # move upward
 
