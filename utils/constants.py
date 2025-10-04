@@ -31,14 +31,14 @@ UNIT_STATS = {
     "Swordsman": {
         "health": 120,
         "armor": 40,
-        "attack_power": 30,
+        "attack_power": 50,
         "attack_range": 1,
         "move_range": 2.0,
     },
     "Archer": {
         "health": 70,
         "armor": 15,
-        "attack_power": 30,
+        "attack_power": 45,
         "attack_range": 3,
         "move_range": 3.0,
     },
@@ -67,6 +67,7 @@ EFFECTIVENESS = {
     "Spearman": {"Archer": 1.0, "Swordsman": 0.8, "Horseman": 1.3},
 }
 
+DAMAGE_DISPLAY_TIME = 30  # frames to show the number
 
 TERRAIN_MOVE_COST = {
     TileType.PLAIN: 1,

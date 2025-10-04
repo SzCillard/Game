@@ -41,6 +41,9 @@ class GameAPI:
     def run_ai_turn(self, team):
         return self.game_logic.run_ai_turn(self.agent, team)
 
+    def update_damage_timers(self):
+        self.game_logic.update_damage_timers()
+
     # --- Queries (frontend can use these) ---
     def get_units(self):
         """Return all units (read-only)"""

@@ -5,8 +5,6 @@ import pygame
 
 from utils.constants import (
     GRID_COLOR,
-    HP_BG,
-    HP_FG,
     SCREEN_H,
     SIDEBAR_WIDTH,
     TEAM_COLORS,
@@ -49,6 +47,7 @@ class Renderer:
     # ------------------------------
     # Board
     # ------------------------------
+
     def draw_grid(self, screen, board_snapshot):
         tiles = board_snapshot["tiles"]
         for y, row in enumerate(tiles):
@@ -61,50 +60,6 @@ class Renderer:
                 )
                 pygame.draw.rect(screen, TILE_COLORS[tile], rect)
                 pygame.draw.rect(screen, GRID_COLOR, rect, width=1)
-
-    def draw_units(self, screen, board_snapshot, selected_id=None):
-        units = board_snapshot["units"]
-
-        for u in units:
-            unit_type = UnitType[u["name"].upper()]
-            team = u["team"] if isinstance(u["team"], TeamType) else TeamType(u["team"])
-
-            rect = pygame.Rect(
-                u["x"] * self.cell_size + SIDEBAR_WIDTH,
-                u["y"] * self.cell_size,
-                self.cell_size,
-                self.cell_size,
-            )
-
-            img = self.unit_images.get(unit_type, {}).get(team)
-            if img:
-                screen.blit(img, rect.topleft)
-            else:
-                pygame.draw.rect(
-                    screen,
-                    TEAM_COLORS.get(team, (100, 100, 100)),
-                    rect,
-                    border_radius=8,
-                )
-
-            # HP bubble
-            hp_text = self.font.render(str(max(0, u["health"])), True, HP_FG)
-            bubble = pygame.Rect(rect.right - 22, rect.top + 4, 18, 18)
-            pygame.draw.rect(screen, HP_BG, bubble, border_radius=6)
-            screen.blit(hp_text, (bubble.x + 3, bubble.y + 1))
-
-        if selected_id is not None:
-            selected = next((u for u in units if u["id"] == selected_id), None)
-            if selected:
-                highlight = pygame.Rect(
-                    selected["x"] * self.cell_size + SIDEBAR_WIDTH,
-                    selected["y"] * self.cell_size,
-                    self.cell_size,
-                    self.cell_size,
-                )
-                pygame.draw.rect(
-                    screen, (255, 230, 80), highlight, width=3, border_radius=8
-                )
 
     def draw_center_text(self, screen, text):
         sw, sh = screen.get_size()
@@ -135,6 +90,114 @@ class Renderer:
             screen.blit(
                 attack_overlay, (x * self.cell_size + SIDEBAR_WIDTH, y * self.cell_size)
             )
+
+    # ------------------------------
+    # Units
+    # ------------------------------
+
+    def draw_units(self, screen, board_snapshot, selected_id=None):
+        """
+        Draw all units with health bars and floating damage numbers.
+        Fully dict-based using snapshot data.
+        """
+        units = board_snapshot["units"]
+
+        for u in units:
+            unit_type = UnitType[u["name"].upper()]
+            team = u["team"] if isinstance(u["team"], TeamType) else TeamType(u["team"])
+
+            rect = pygame.Rect(
+                u["x"] * self.cell_size + SIDEBAR_WIDTH,
+                u["y"] * self.cell_size,
+                self.cell_size,
+                self.cell_size,
+            )
+
+            # --- Draw unit sprite ---
+            img = self.unit_images.get(unit_type, {}).get(team)
+            if img:
+                screen.blit(img, rect.topleft)
+            else:
+                pygame.draw.rect(
+                    screen,
+                    TEAM_COLORS.get(team, (100, 100, 100)),
+                    rect,
+                    border_radius=8,
+                )
+
+            # --- Draw health bar ---
+            if "max_hp" in u:
+                self._draw_health_bar(screen, u, rect)
+
+            # --- Draw floating damage ---
+            self._draw_damage_number(screen, u, rect)
+
+        # --- Highlight selection ---
+        if selected_id is not None:
+            selected = next((u for u in units if u["id"] == selected_id), None)
+            if selected:
+                highlight = pygame.Rect(
+                    selected["x"] * self.cell_size + SIDEBAR_WIDTH,
+                    selected["y"] * self.cell_size,
+                    self.cell_size,
+                    self.cell_size,
+                )
+                pygame.draw.rect(
+                    screen, (255, 230, 80), highlight, width=3, border_radius=8
+                )
+
+    def _draw_health_bar(self, screen, unit: dict, rect: pygame.Rect):
+        """
+        Draw a small health bar above the unit.
+        Only show if unit took damage.
+        """
+        if unit["health"] <= 0:
+            return
+
+        bar_width = self.cell_size - 4
+        bar_height = 6
+        bar_x = rect.x + 2
+        bar_y = rect.y - 8
+
+        # Background
+        pygame.draw.rect(screen, (60, 60, 60), (bar_x, bar_y, bar_width, bar_height))
+
+        # Health ratio
+        ratio = unit["health"] / unit["max_hp"]
+        if ratio > 0.6:
+            color = (0, 200, 0)
+        elif ratio > 0.3:
+            color = (200, 200, 0)
+        else:
+            color = (200, 0, 0)
+
+        # Filled bar
+        pygame.draw.rect(
+            screen, color, (bar_x, bar_y, int(bar_width * ratio), bar_height)
+        )
+
+    def _draw_damage_number(self, screen, unit: dict, rect: pygame.Rect):
+        """
+        Draw floating red damage numbers above the unit.
+        The text floats up as damage_timer decreases and disappears when timer <= 0.
+        """
+        timer = unit.get("damage_timer", 0)
+        dmg = unit.get("last_damage", 0)
+
+        # only show if recently damaged
+        if timer <= 0 or dmg <= 0:
+            return
+
+        font = pygame.font.Font(None, 24)
+        dmg_text = font.render(f"-{dmg}", True, (255, 0, 0))
+
+        total_time = 30  # frames
+        elapsed = total_time - timer
+        offset_y = elapsed // 2  # move upward
+
+        dmg_x = rect.centerx - dmg_text.get_width() // 2
+        dmg_y = rect.y - 20 - offset_y
+        screen.blit(dmg_text, (dmg_x, dmg_y))
 
     # ------------------------------
     # Sidebar

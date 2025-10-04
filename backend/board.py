@@ -47,7 +47,7 @@ class GameState:
         """
         UI/AI snapshot. Tiles are TileType entries, units is a list of dicts.
         The unit dict contains both 'has_attacked' and 'move_points'
-        (so UI can show availability).
+        (so UI can show availability), plus max_hp and damage info for UI.
         """
         return {
             "tiles": self.tile_map,
@@ -58,6 +58,7 @@ class GameState:
                     "y": u.y,
                     "team": u.team,
                     "health": u.health,
+                    "max_hp": getattr(u, "max_hp", u.health),
                     "armor": u.armor,
                     "attack_power": u.attack_power,
                     "attack_range": u.attack_range,
@@ -65,8 +66,10 @@ class GameState:
                     "move_points": u.move_points,
                     "name": u.name,
                     "has_attacked": u.has_attacked,
-                    # compatibility field used by existing UI logic:
                     "has_acted": u.has_acted,
+                    # --- damage info for UI ---
+                    "last_damage": getattr(u, "last_damage", 0),
+                    "damage_timer": getattr(u, "damage_timer", 0),
                 }
                 for u in self.units
             ],

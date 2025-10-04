@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 
 from backend.board import GameState, TileType
 from backend.units import Unit
-from utils.constants import EPSILON
+from utils.constants import DAMAGE_DISPLAY_TIME, EPSILON
 from utils.helpers import calculate_damage, compute_min_cost_gs, manhattan
 from utils.messages import add_message
 
@@ -80,6 +80,10 @@ class GameLogic:
 
         dmg = calculate_damage(attacker, defender)
 
+        # --- store damage info for UI ---
+        defender.last_damage = dmg
+        defender.damage_timer = DAMAGE_DISPLAY_TIME  # frames to show the number
+
         if attacker.attack_range > 1:  # ranged (no retaliation)
             defender.health -= dmg
             add_message(f"{attacker.name} shot {defender.name} for {dmg}.")
@@ -96,6 +100,14 @@ class GameLogic:
         attacker.move_points = 0
         self.gs.remove_dead()
         return True
+
+    def update_damage_timers(self):
+        """Reduce the damage display timers for all units each frame."""
+        for u in self.gs.units:
+            if hasattr(u, "damage_timer") and u.damage_timer > 0:
+                u.damage_timer = max(0, u.damage_timer - 1)
+                if u.damage_timer == 0:
+                    u.last_damage = 0
 
     # ------------------------------
     # Turn Flow Helpers

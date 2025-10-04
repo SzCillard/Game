@@ -50,6 +50,8 @@ class GameEngine:
 
     def render(self):
         snapshot = self.game_api.get_board_snapshot()
+
+        self.game_api.update_damage_timers()
         self.screen.fill((240, 240, 240))
         self.game_api.draw(self.screen, snapshot, self.selected_id)
 

@@ -38,6 +38,10 @@ class Unit(ABC):
         self.has_attacked: bool = False  # has the unit attacked this turn?
         self.has_acted: bool = False  # generic flag if unit already acted
 
+        # Temporary info
+        self.last_damage = 0
+        self.damage_timer = 0
+
 
 class Swordsman(Unit):
     def __init__(self, x: int, y: int, team: TeamType):
