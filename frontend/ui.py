@@ -1,6 +1,7 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from __future__ import annotations
 
 import pygame
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from api.api import GameAPI
@@ -11,45 +12,81 @@ from utils.helpers import pixel_to_grid
 
 
 class UI:
-    def __init__(self, cell_size: int, renderer: "Renderer"):
+    """
+    Handles all user interface logic, including menus, in-game input,
+    and player interaction with the GameAPI.
+
+    Responsibilities:
+    - Displaying and managing the start menu
+    - Handling mouse and keyboard input during gameplay
+    - Converting UI actions into structured commands
+    - Executing those commands via the GameAPI
+    """
+
+    def __init__(self, cell_size: int, renderer: Renderer) -> None:
+        """
+        Initialize the UI system.
+
+        Args:
+            cell_size: The pixel size of each board cell.
+            renderer: The Renderer responsible for drawing UI and board elements.
+        """
         self.cell_size = cell_size
         self.renderer = renderer
 
     # ------------------------------
     # Start Menu
     # ------------------------------
-    def start_menu(self, screen, font) -> Any:
+    # TODO:move the rendering of start menu to renderer
+    def start_menu(self, screen: pygame.Surface, font: pygame.font.Font) -> str:
+        """
+        Display and handle the game's start menu.
+
+        Lets the player choose between starting the game or quitting,
+        using keyboard navigation or mouse clicks.
+
+        Args:
+            screen: The main pygame display surface.
+            font: Font used for menu text rendering.
+
+        Returns:
+            "start_game" or "quit", depending on the player's selection.
+        """
         running = True
         selected_option = 0
         options = ["Start Game", "Quit"]
         clock = pygame.time.Clock()
 
         while running:
+            # --- Clear and get mouse state ---
             screen.fill((30, 30, 40))
             sw, sh = screen.get_size()
             mouse_x, mouse_y = pygame.mouse.get_pos()
 
-            # Title
+            # --- Draw title ---
             title_surf = font.render("Commanders' Arena", True, (255, 220, 100))
             screen.blit(
                 title_surf, (sw // 2 - title_surf.get_width() // 2, sh // 4 - 60)
             )
 
-            # Draw buttons
+            # --- Draw buttons ---
             for i, option in enumerate(options):
                 btn_width, btn_height = 220, 50
                 btn_x = sw // 2 - btn_width // 2
                 btn_y = sh // 2 - 40 + i * 80
                 btn_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
 
+                # Hover effect with mouse detection
                 if btn_rect.collidepoint(mouse_x, mouse_y):
                     color = (255, 230, 80)
                     selected_option = i
                 else:
                     color = (200, 200, 200)
 
+                # Draw button rectangle
                 pygame.draw.rect(screen, color, btn_rect, border_radius=12)
 
+                # Draw text centered inside button
                 text_surf = font.render(option, True, (10, 10, 10))
                 screen.blit(
                     text_surf,
@@ -61,9 +98,13 @@ class UI:
 
             pygame.display.flip()
 
+            # --- Handle events ---
             for event in pygame.event.get():
+                # Window closed
                 if event.type == pygame.QUIT:
                     return "quit"
+
+                # Keyboard navigation
                 if event.type == pygame.KEYDOWN:
                     if event.key in [pygame.K_DOWN, pygame.K_s]:
                         selected_option = (selected_option + 1) % len(options)
@@ -71,24 +112,46 @@ class UI:
                         selected_option = (selected_option - 1) % len(options)
                     elif event.key in [pygame.K_RETURN, pygame.K_SPACE]:
                         return options[selected_option].lower().replace(" ", "_")
+
+                # Mouse click confirmation (left button only)
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     return options[selected_option].lower().replace(" ", "_")
 
+            # Maintain consistent framerate for smooth input
             clock.tick(60)
 
     # ------------------------------
-    # Game Input
+    # Game Input Handling
     # ------------------------------
     def handle_event(
         self,
         event: pygame.event.Event,
-        units_snapshot: List[Dict[str, Any]],
-        selected_id: Optional[int],
-    ) -> Optional[Dict[str, Any]]:
+        units_snapshot: list[dict[str, Any]],
+        selected_id: int | None,
+    ) -> dict[str, Any] | None:
+        """
+        Process player input events during gameplay.
+
+        Converts mouse clicks into structured action dictionaries that describe
+        the player's intent (select, move, attack, etc.).
+
+        Args:
+            event: The pygame event being processed.
+            units_snapshot: A snapshot of all current units on the board.
+            selected_id: ID of the currently selected unit, or None if none is selected.
+
+        Returns:
+            A structured action dictionary such as:
+                {"type": "select", "selected_id": 3}
+                {"type": "move", "unit_id": 3, "to": (x, y)}
+                {"type": "attack", "attacker_id": 3, "defender_id": 7}
+            Returns None if no actionable input is detected.
+        """
+        # Handle left mouse click only
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             px, py = event.pos
 
-            # Sidebar button clicks
+            # --- Sidebar buttons ---
             if px < SIDEBAR_WIDTH and self.renderer:
                 clicked = self.renderer.handle_sidebar_click((px, py))
                 if clicked == "End Turn":
@@ -101,13 +164,15 @@ class UI:
                     return {"type": "help"}
                 return None
 
-            # Adjust for sidebar offset
+            # --- Board interaction ---
+            # Convert mouse position to grid coordinates (offset by sidebar)
             x, y = pixel_to_grid(px - SIDEBAR_WIDTH, py, self.cell_size)
             target = next(
                 (u for u in units_snapshot if u["x"] == x and u["y"] == y), None
             )
             selected = next((u for u in units_snapshot if u["id"] == selected_id), None)
 
+            # --- No unit currently selected: try selecting one ---
             if selected is None:
                 if (
                     target
@@ -115,20 +180,25 @@ class UI:
                     and not target["has_acted"]
                 ):
                     return {"type": "select", "selected_id": target["id"]}
+
+            # --- A unit is selected: decide the next action ---
             else:
                 if target:
+                    # Attack if enemy unit clicked
                     if target["team"] != selected["team"]:
                         return {
                             "type": "attack",
                             "attacker_id": selected["id"],
                             "defender_id": target["id"],
                         }
-                    else:
-                        if not target["has_acted"]:
-                            return {"type": "select", "selected_id": target["id"]}
-                        return None
-                else:
-                    return {"type": "move", "unit_id": selected["id"], "to": (x, y)}
+
+                    # Switch to another friendly unit if available
+                    elif not target["has_acted"]:
+                        return {"type": "select", "selected_id": target["id"]}
+                    return None
+
+                # Clicked on an empty tile — attempt to move
+                return {"type": "move", "unit_id": selected["id"], "to": (x, y)}
 
         return None
 
@@ -136,32 +206,60 @@ class UI:
     # Apply Actions
     # ------------------------------
     def apply_action(
-        self, action: Dict[str, Any], api: "GameAPI"
-    ) -> Dict[str, Optional[int]]:
+        self, action: dict[str, Any], api: GameAPI
+    ) -> dict[str, int | bool | None]:
+        """
+        Execute the provided player action via the GameAPI.
+
+        This function interprets and applies an action dictionary generated by
+        `handle_event()` — e.g., moving a unit, attacking, or ending the turn.
+
+        Args:
+            action: The structured action dictionary.
+            api: The main game API used to execute game commands.
+
+        Returns:
+            A dictionary describing the resulting UI state. Examples:
+                {"selected_id": 4}
+                {"selected_id": None, "end_turn_requested": True}
+                {"selected_id": None, "quit_requested": True}
+        """
         kind = action.get("type")
 
+        # --- Selecting a unit ---
         if kind == "select":
             return {"selected_id": action["selected_id"]}
 
+        # --- Moving a unit ---
         elif kind == "move":
             unit = next(u for u in api.get_units() if u.id == action["unit_id"])
             x, y = action["to"]
             api.request_move(unit, x, y)
             return {"selected_id": unit.id}
 
+        # --- Attacking another unit ---
         elif kind == "attack":
             attacker = next(u for u in api.get_units() if u.id == action["attacker_id"])
             defender = next(u for u in api.get_units() if u.id == action["defender_id"])
             api.request_attack(attacker, defender)
             return {"selected_id": None}
-        if kind == "end_turn":
+
+        # --- End turn ---
+        elif kind == "end_turn":
             return {"selected_id": None, "end_turn_requested": True}
+
+        # --- Open menu ---
         elif kind == "menu":
             return {"selected_id": None, "menu_requested": True}
+
+        # --- Quit game ---
         elif kind == "quit":
             return {"selected_id": None, "quit_requested": True}
+
+        # --- Help ---
         elif kind == "help":
             print("📖 Help button clicked")
             return {"selected_id": None, "help_requested": True}
 
+        # Default fallback (no valid action)
         return {"selected_id": None}

@@ -1,4 +1,15 @@
-# backend/board.py
+"""
+backend/board.py
+
+Defines the GameState class (the central board representation) and
+various terrain generation utilities for maps (plains, hills, water, etc.).
+
+Each GameState contains:
+- Tile map (2D grid of TileType)
+- List of units
+- Utilities for querying and mutating the map state
+"""
+
 import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -7,21 +18,49 @@ from backend.units import Unit
 from utils.constants import TERRAIN_MOVE_COST, TileType
 
 
+# ======================================================================
+# 🎯 Core Game State
+# ======================================================================
+
+
 @dataclass
 class GameState:
+    """
+    Represents the full game board and all active units.
+
+    Attributes:
+        width (int): Width of the board in tiles.
+        height (int): Height of the board in tiles.
+        cell_size (int): Size of each tile in pixels (for rendering alignment).
+        tile_map (list[list[TileType]]): 2D terrain grid (rows × columns).
+        units (list[Unit]): All currently active units.
+    """
+
     width: int
     height: int
     cell_size: int
     tile_map: List[List[TileType]] = field(default_factory=list)
     units: List[Unit] = field(default_factory=list)
 
+    # ------------------------------
+    # Basic Grid Operations
+    # ------------------------------
+
     def in_bounds(self, x: int, y: int) -> bool:
+        """Return True if coordinates are within map bounds."""
         return 0 <= x < self.width and 0 <= y < self.height
 
     def tile(self, x: int, y: int) -> TileType:
+        """Return the terrain type at the given coordinates."""
         return self.tile_map[y][x]
 
     def is_passable(self, x: int, y: int) -> bool:
+        """
+        Check if a tile is traversable (not a mountain or water, no unit on it).
+
+        Returns:
+            bool: True if unit can pass, False otherwise.
+        """
         return (
             self.in_bounds(x, y)
             and TERRAIN_MOVE_COST[self.tile(x, y)] < 9999
@@ -29,15 +68,40 @@ class GameState:
         )
 
     def move_cost(self, x: int, y: int) -> int:
+        """
+        Get the terrain movement cost of a tile.
+
+        Returns:
+            int: Movement cost (e.g. 1 = plain, 2 = hill, 9999 = mountain).
+        """
         return TERRAIN_MOVE_COST[self.tile(x, y)]
 
+    # ------------------------------
+    # Unit Management
+    # ------------------------------
+
     def add_unit(self, unit: Unit) -> None:
-        # initialise per-turn movement/attack state on the unit
+        """
+        Add a unit to the board and initialize its per-turn properties.
+
+        Args:
+            unit (Unit): The unit to add.
+        """
         setattr(unit, "move_points", getattr(unit, "move_range", 0))
         setattr(unit, "has_attacked", False)
         self.units.append(unit)
 
     def get_unit_at(self, x: int, y: int) -> Optional[Unit]:
+        """
+        Get the unit at a given tile, if any.
+
+        Args:
+            x (int): Tile x position.
+            y (int): Tile y position.
+
+        Returns:
+            Optional[Unit]: Unit instance if found, None otherwise.
+        """
         for u in self.units:
             if u.x == x and u.y == y:
                 return u
@@ -45,9 +109,12 @@ class GameState:
 
     def get_snapshot(self) -> Dict[str, Any]:
         """
-        UI/AI snapshot. Tiles are TileType entries, units is a list of dicts.
-        The unit dict contains both 'has_attacked' and 'move_points'
-        (so UI can show availability), plus max_hp and damage info for UI.
+        Return a simplified snapshot of the current game state.
+
+        Used by UI and AI for rendering or decision-making.
+
+        Returns:
+            dict: Contains 'tiles' (2D map) and 'units' (serialized list).
         """
         return {
             "tiles": self.tile_map,
@@ -67,7 +134,7 @@ class GameState:
                     "name": u.name,
                     "has_attacked": u.has_attacked,
                     "has_acted": u.has_acted,
-                    # --- damage info for UI ---
+                    # Damage feedback info (for floating numbers in UI)
                     "last_damage": getattr(u, "last_damage", 0),
                     "damage_timer": getattr(u, "damage_timer", 0),
                 }
@@ -76,20 +143,33 @@ class GameState:
         }
 
     def remove_dead(self) -> None:
+        """Remove all units with health <= 0 from the board."""
         self.units = [u for u in self.units if u.health > 0]
 
 
+# ======================================================================
+# 🗺️ Map Generation Utilities
+# ======================================================================
+
+
 def create_default_map(w: int, h: int) -> List[List[TileType]]:
+    """
+    Create a default mixed terrain map with a diagonal mountain range
+    and a central water column.
+    """
     m: List[List[TileType]] = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
-    # border hills
+
+    # Border hills (top/bottom)
     for x in range(w):
         m[0][x] = TileType.HILL
         m[h - 1][x] = TileType.HILL
-    # mountains diagonal
+
+    # Diagonal mountains for variety
     for i in range(3, min(w, h) - 3, 4):
         if 0 <= i < w and 0 <= i < h:
             m[i][i] = TileType.MOUNTAIN
-    # water column
+
+    # Vertical water barrier in center
     water_x = w // 2
     for y in range(2, h - 2):
         m[y][water_x] = TileType.WATER
@@ -97,23 +177,23 @@ def create_default_map(w: int, h: int) -> List[List[TileType]]:
 
 
 def create_hilly_map(w: int, h: int) -> List[List[TileType]]:
-    """Creates a map with many hills in the middle horizontally and
-    a few scattered elsewhere."""
-    # Start with a plain map
+    """
+    Generate a map with a thick horizontal band of hills across the center
+    and some scattered hill tiles elsewhere.
+    """
     m = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
 
     # Middle horizontal band of hills
     mid_h = h // 2
-    band_height = 3  # 3 rows of hills centered at mid_h
+    band_height = 3  # rows thick
     for y in range(mid_h - band_height // 2, mid_h + band_height // 2 + 1):
         for x in range(w):
-            if random.random() < 0.8:  # 80% chance to be a hill
+            if random.random() < 0.8:  # 80% chance hill
                 m[y][x] = TileType.HILL
 
-    # Scatter a few hills in other parts
-    for _ in range((w * h) // 15):  # number of random hills
-        x = random.randint(0, w - 1)
-        y = random.randint(0, h - 1)
+    # Scatter extra hills for variation
+    for _ in range((w * h) // 15):
+        x, y = random.randrange(w), random.randrange(h)
         if m[y][x] == TileType.PLAIN:
             m[y][x] = TileType.HILL
 
@@ -121,38 +201,53 @@ def create_hilly_map(w: int, h: int) -> List[List[TileType]]:
 
 
 def create_watery_map(w: int, h: int) -> List[List[TileType]]:
-    """Several lakes and rivers."""
+    """
+    Generate a map dominated by rivers and lakes.
+
+    Features:
+    - Horizontal river at mid-height
+    - Vertical river roughly 1/3 into map width
+    """
     m = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
-    # horizontal river
+
+    # Horizontal river
     for x in range(2, w - 2):
         m[h // 2][x] = TileType.WATER
-    # vertical river
+
+    # Vertical river
     for y in range(3, h - 3):
         m[y][w // 3] = TileType.WATER
     return m
 
 
 def create_mountainous_map(w: int, h: int) -> List[List[TileType]]:
-    """Impassable mountains blocking areas."""
+    """
+    Generate a map with mountains blocking movement in certain areas.
+    """
     m = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
     for i in range(min(w, h)):
-        if i % 2 == 0 or i > 7 or i < 9:
+        if i % 2 == 0 or 7 < i < 9:
             m[i][i] = TileType.MOUNTAIN
     return m
 
 
 def create_mixed_map(w: int, h: int) -> List[List[TileType]]:
-    """Balanced map with plains, hills, water, and some mountains in simple clusters."""
+    """
+    Generate a balanced map with plains, hills, water, and mountains.
+
+    - Hills form a horizontal band across the center.
+    - Water and mountain clusters are scattered randomly.
+    """
     m = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
 
-    # --- Horizontal hills band in the middle ---
+    # --- Hills band ---
     mid_h = h // 2
-    for y in range(mid_h - 1, mid_h + 2):  # 3 rows thick
+    for y in range(mid_h - 1, mid_h + 2):
         for x in range(w):
-            if random.random() < 0.7:  # 70% chance to be a hill
+            if random.random() < 0.7:
                 m[y][x] = TileType.HILL
 
-    # --- Water clusters ---
+    # --- Water clusters (small lakes) ---
     num_lakes = max(1, w * h // 50)
     for _ in range(num_lakes):
         lake_x = random.randint(0, w - 3)
@@ -175,6 +270,10 @@ def create_mixed_map(w: int, h: int) -> List[List[TileType]]:
     return m
 
 
+# ======================================================================
+# 🧭 Map Type Dispatcher
+# ======================================================================
+
 MAP_GENERATORS = {
     "hilly": create_hilly_map,
     "mixed": create_mixed_map,
@@ -182,7 +281,16 @@ MAP_GENERATORS = {
 
 
 def create_random_map(w: int, h: int) -> List[List[TileType]]:
-    """Pick a random map type and generate it."""
+    """
+    Randomly choose one of the available map generators.
+
+    Args:
+        w (int): Width in tiles.
+        h (int): Height in tiles.
+
+    Returns:
+        list[list[TileType]]: Generated map grid.
+    """
     map_type = random.choice(list(MAP_GENERATORS.keys()))
     print(f"🌍 Using map type: {map_type}")
     return MAP_GENERATORS[map_type](w, h)
