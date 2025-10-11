@@ -21,10 +21,10 @@ class FontType(Enum):
 
 
 FONT_FAMILIES = {
-    FontType.MENU: "Calibri",
-    FontType.SIDEBAR: "Arial",
-    FontType.DAMAGE: "Comic Sans MS",
-    FontType.TITLE: "Verdana",
+    FontType.MENU: "assets/fonts/PRAEBRG_.TTF",
+    FontType.SIDEBAR: "assets/fonts/PRAEBRG_.TTF",
+    FontType.DAMAGE: "assets/fonts/PRAEBRG_.TTF",
+    FontType.TITLE: "assets/fonts/PRAEBRG_.TTF",
 }
 FONT_COLORS = {
     FontType.MENU: Color.BLACK.value,
@@ -40,10 +40,10 @@ class FontManager:
 
         # Preload fonts (change families or sizes here)
         self.fonts = {
-            "menu": pygame.font.SysFont(FONT_FAMILIES[FontType.MENU], FontSize.L),
-            "sidebar": pygame.font.SysFont(FONT_FAMILIES[FontType.SIDEBAR], FontSize.S),
-            "damage": pygame.font.SysFont(FONT_FAMILIES[FontType.DAMAGE], FontSize.S),
-            "title": pygame.font.SysFont(FONT_FAMILIES[FontType.TITLE], FontSize.XL),
+            "menu": pygame.font.Font(FONT_FAMILIES[FontType.MENU], FontSize.L),
+            "sidebar": pygame.font.Font(FONT_FAMILIES[FontType.SIDEBAR], FontSize.M),
+            "damage": pygame.font.Font(FONT_FAMILIES[FontType.DAMAGE], FontSize.M),
+            "title": pygame.font.Font(FONT_FAMILIES[FontType.TITLE], FontSize.XL),
         }
 
         # Default colors for each
