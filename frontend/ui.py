@@ -36,89 +36,46 @@ class UI:
         self.renderer = renderer
 
     # ------------------------------
-    # Start Menu
+    # Start Menu handling
     # ------------------------------
-    # TODO:move the rendering of start menu to renderer
-    def start_menu(self, screen: pygame.Surface, font: pygame.font.Font) -> str | None:
-        """
-        Display and handle the game's start menu.
+    def start_menu(self, screen: pygame.Surface, font: pygame.font.Font) -> str:
+        """Display the start menu and handle user input."""
 
-        Lets the player choose between starting the game or quitting,
-        using keyboard navigation or mouse clicks.
-
-        Args:
-            screen: The main pygame display surface.
-            font: Font used for menu text rendering.
-
-        Returns:
-            "start_game" or "quit", depending on the player's selection.
-        """
-        running = True
-        selected_option = 0
         options = ["Start Game", "Quit"]
+        selected_index = 0
         clock = pygame.time.Clock()
 
-        while running:
-            # --- Clear and get mouse state ---
-            screen.fill((30, 30, 40))
-            sw, sh = screen.get_size()
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-
-            # --- Draw title ---
-            title_surf = font.render("Commanders' Arena", True, (255, 220, 100))
-            screen.blit(
-                title_surf, (sw // 2 - title_surf.get_width() // 2, sh // 4 - 60)
-            )
-
-            # --- Draw buttons ---
-            for i, option in enumerate(options):
-                btn_width, btn_height = 220, 50
-                btn_x = sw // 2 - btn_width // 2
-                btn_y = sh // 2 - 40 + i * 80
-                btn_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
-
-                # Hover effect with mouse detection
-                if btn_rect.collidepoint(mouse_x, mouse_y):
-                    color = (255, 230, 80)
-                    selected_option = i
-                else:
-                    color = (200, 200, 200)
-
-                # Draw button rectangle
-                pygame.draw.rect(screen, color, btn_rect, border_radius=12)
-
-                # Draw text centered inside button
-                text_surf = font.render(option, True, (10, 10, 10))
-                screen.blit(
-                    text_surf,
-                    (
-                        btn_x + btn_width // 2 - text_surf.get_width() // 2,
-                        btn_y + btn_height // 2 - text_surf.get_height() // 2,
-                    ),
-                )
-
-            pygame.display.flip()
-
-            # --- Handle events ---
+        while True:
+            # --- Event handling ---
             for event in pygame.event.get():
-                # Window closed
                 if event.type == pygame.QUIT:
                     return "quit"
 
-                # Keyboard navigation
                 if event.type == pygame.KEYDOWN:
                     if event.key in [pygame.K_DOWN, pygame.K_s]:
-                        selected_option = (selected_option + 1) % len(options)
+                        selected_index = (selected_index + 1) % len(options)
                     elif event.key in [pygame.K_UP, pygame.K_w]:
-                        selected_option = (selected_option - 1) % len(options)
+                        selected_index = (selected_index - 1) % len(options)
                     elif event.key in [pygame.K_RETURN, pygame.K_SPACE]:
-                        return options[selected_option].lower().replace(" ", "_")
+                        return options[selected_index].lower().replace(" ", "_")
 
-                # Mouse click confirmation (left button only)
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    return options[selected_option].lower().replace(" ", "_")
+                    # Determine if clicked on a button
+                    mx, my = pygame.mouse.get_pos()
+                    sw, sh = screen.get_size()
+                    for i, option in enumerate(options):
+                        btn_width, btn_height = 220, 50
+                        btn_x = sw // 2 - btn_width // 2
+                        btn_y = sh // 2 - 40 + i * 80
+                        if (
+                            btn_x <= mx <= btn_x + btn_width
+                            and btn_y <= my <= btn_y + btn_height
+                        ):
+                            return options[i].lower().replace(" ", "_")
 
-            # Maintain consistent framerate for smooth input
+            # --- Draw the menu ---
+            self.renderer.draw_start_menu(screen, selected_index, options)
+            pygame.display.flip()
             clock.tick(60)
 
     # ------------------------------

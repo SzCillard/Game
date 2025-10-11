@@ -45,6 +45,46 @@ class Renderer:
         self.sidebar_buttons = {}  # Mapping of {button_label: pygame.Rect}
 
     # ------------------------------
+    # Start Menu
+    # ------------------------------
+    def draw_start_menu(
+        self, screen: pygame.Surface, selected_index: int, options: list[str]
+    ) -> None:
+        """Render the main menu screen."""
+        screen.fill((30, 30, 40))
+        sw, sh = screen.get_size()
+
+        # --- Draw title ---
+        title_surf = self.font.render("Commanders' Arena", True, (255, 220, 100))
+        screen.blit(title_surf, (sw // 2 - title_surf.get_width() // 2, sh // 4 - 60))
+
+        # --- Draw buttons ---
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        for i, option in enumerate(options):
+            btn_width, btn_height = 220, 50
+            btn_x = sw // 2 - btn_width // 2
+            btn_y = sh // 2 - 40 + i * 80
+            btn_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
+
+            # Hover and selection
+            if btn_rect.collidepoint(mouse_x, mouse_y):
+                color = (255, 230, 80)
+            elif i == selected_index:
+                color = (255, 255, 150)
+            else:
+                color = (200, 200, 200)
+
+            pygame.draw.rect(screen, color, btn_rect, border_radius=12)
+            text_surf = self.font.render(option, True, (10, 10, 10))
+            screen.blit(
+                text_surf,
+                (
+                    btn_x + btn_width // 2 - text_surf.get_width() // 2,
+                    btn_y + btn_height // 2 - text_surf.get_height() // 2,
+                ),
+            )
+
+    # ------------------------------
     # Board Rendering
     # ------------------------------
 
