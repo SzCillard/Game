@@ -1,5 +1,4 @@
 # frontend/renderer.py
-import os
 
 import pygame
 
@@ -17,6 +16,7 @@ from utils.constants import (
     TileHighlightType,
     UnitType,
 )
+from utils.helpers import load_unit_images
 
 
 class Renderer:
@@ -41,42 +41,10 @@ class Renderer:
         """
         self.cell_size = cell_size
         self.font = font
-        self.unit_images = self._load_unit_images()  # Preload all unit images
+        self.unit_images = load_unit_images(
+            cell_size=cell_size
+        )  # Preload all unit images
         self.sidebar_buttons = {}  # Mapping of {button_label: pygame.Rect}
-
-    # ------------------------------
-    # Image Loading
-    # ------------------------------
-
-    def _load_unit_images(self):
-        """
-        Preload all unit images for both teams.
-
-        Returns:
-            dict: Nested dictionary of format:
-                  images[UnitType][TeamType] = pygame.Surface
-        """
-        images = {}
-        base_path = os.path.join("images")
-
-        # Iterate over all defined unit types and team types
-        for unit in UnitType:
-            images[unit] = {}
-            for team in TeamType:
-                team_name = "purple" if team == TeamType.PLAYER else "red"
-                path = os.path.join(
-                    base_path, unit.name.lower(), f"{unit.name.lower()}_{team_name}.png"
-                )
-
-                # Load and scale if exists, else use None
-                if os.path.exists(path):
-                    img = pygame.image.load(path).convert_alpha()
-                    img = pygame.transform.scale(img, (self.cell_size, self.cell_size))
-                    images[unit][team] = img
-                else:
-                    print(f"⚠️ Missing image: {path}")
-                    images[unit][team] = None
-        return images
 
     # ------------------------------
     # Board Rendering

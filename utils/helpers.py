@@ -1,7 +1,10 @@
 # utils/helpers.py
 import heapq
 import math
+import os
 from typing import Any, Dict, List, Optional, Tuple
+
+import pygame
 
 from utils.constants import (
     DIRS,
@@ -9,7 +12,9 @@ from utils.constants import (
     TERRAIN_ATTACK_BONUS,
     TERRAIN_DEFENSE_BONUS,
     TERRAIN_MOVE_COST,
+    TeamType,
     TileType,
+    UnitType,
 )
 
 
@@ -259,3 +264,38 @@ def calculate_damage(attacker, defender, game_state=None):
 
     # Always at least 1 damage if it connects
     return max(1, int(final_damage))
+
+    # ------------------------------
+    # Image Loading
+    # ------------------------------
+
+
+def load_unit_images(cell_size: int):
+    """
+    Preload all unit images for both teams.
+
+    Returns:
+        dict: Nested dictionary of format:
+              images[UnitType][TeamType] = pygame.Surface
+    """
+    images = {}
+    base_path = os.path.join("images")
+
+    # Iterate over all defined unit types and team types
+    for unit in UnitType:
+        images[unit] = {}
+        for team in TeamType:
+            team_name = "purple" if team == TeamType.PLAYER else "red"
+            path = os.path.join(
+                base_path, unit.name.lower(), f"{unit.name.lower()}_{team_name}.png"
+            )
+
+            # Load and scale if exists, else use None
+            if os.path.exists(path):
+                img = pygame.image.load(path).convert_alpha()
+                img = pygame.transform.scale(img, (cell_size, cell_size))
+                images[unit][team] = img
+            else:
+                print(f"⚠️ Missing image: {path}")
+                images[unit][team] = None
+    return images
