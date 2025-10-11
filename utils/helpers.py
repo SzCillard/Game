@@ -279,7 +279,7 @@ def load_unit_images(cell_size: int):
               images[UnitType][TeamType] = pygame.Surface
     """
     images = {}
-    base_path = os.path.join("images")
+    base_path = os.path.join("assets/images")
 
     # Iterate over all defined unit types and team types
     for unit in UnitType:
