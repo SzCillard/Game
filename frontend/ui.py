@@ -39,7 +39,7 @@ class UI:
     # Start Menu
     # ------------------------------
     # TODO:move the rendering of start menu to renderer
-    def start_menu(self, screen: pygame.Surface, font: pygame.font.Font) -> str:
+    def start_menu(self, screen: pygame.Surface, font: pygame.font.Font) -> str | None:
         """
         Display and handle the game's start menu.
 
