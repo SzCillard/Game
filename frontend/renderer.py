@@ -41,9 +41,7 @@ class Renderer:
         """
         self.cell_size = cell_size
         self.font = font
-        self.unit_images = load_unit_images(
-            cell_size=cell_size
-        )  # Preload all unit images
+        self.unit_images = load_unit_images(cell_size=cell_size)
         self.sidebar_buttons = {}  # Mapping of {button_label: pygame.Rect}
 
     # ------------------------------
