@@ -1,5 +1,6 @@
 # frontend/renderer.py
 import os
+
 import pygame
 
 from utils.constants import (

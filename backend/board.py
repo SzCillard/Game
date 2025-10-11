@@ -17,7 +17,6 @@ from typing import Any, Dict, List, Optional
 from backend.units import Unit
 from utils.constants import TERRAIN_MOVE_COST, TileType
 
-
 # ======================================================================
 # 🎯 Core Game State
 # ======================================================================

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pygame
+
 from utils.constants import SCREEN_H, TeamType
 from utils.messages import add_message
 from utils.music_utils import play_battle_music
