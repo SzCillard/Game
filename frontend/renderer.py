@@ -12,10 +12,12 @@ from utils.constants import (
     TERRAIN_DEFENSE_BONUS,
     TILE_COLORS,
     TILE_HIGHLIGHT_COLOR,
+    Color,
     TeamType,
     TileHighlightType,
     UnitType,
 )
+from utils.fonts import FontManager
 from utils.helpers import load_unit_images
 
 
@@ -31,7 +33,7 @@ class Renderer:
     The class separates drawing logic from game logic for cleaner architecture.
     """
 
-    def __init__(self, cell_size: int, font: pygame.font.Font):
+    def __init__(self, cell_size: int):
         """
         Initialize the renderer with grid and font data.
 
@@ -40,9 +42,9 @@ class Renderer:
             font (pygame.font.Font): Font used for UI text rendering.
         """
         self.cell_size = cell_size
-        self.font = font
         self.unit_images = load_unit_images(cell_size=cell_size)
         self.sidebar_buttons = {}  # Mapping of {button_label: pygame.Rect}
+        self.fonts = FontManager()
 
     # ------------------------------
     # Start Menu
@@ -51,11 +53,12 @@ class Renderer:
         self, screen: pygame.Surface, selected_index: int, options: list[str]
     ) -> None:
         """Render the main menu screen."""
-        screen.fill((30, 30, 40))
+        screen.fill(Color.BLACK.value)
         sw, sh = screen.get_size()
 
         # --- Draw title ---
-        title_surf = self.font.render("Commanders' Arena", True, (255, 220, 100))
+        font, color = self.fonts.get("title")
+        title_surf = font.render("Commanders' Arena", True, color=color)
         screen.blit(title_surf, (sw // 2 - title_surf.get_width() // 2, sh // 4 - 60))
 
         # --- Draw buttons ---
@@ -75,7 +78,8 @@ class Renderer:
                 color = (200, 200, 200)
 
             pygame.draw.rect(screen, color, btn_rect, border_radius=12)
-            text_surf = self.font.render(option, True, (10, 10, 10))
+            font, color = self.fonts.get("menu")
+            text_surf = font.render(option, True, color=color)
             screen.blit(
                 text_surf,
                 (
@@ -119,7 +123,8 @@ class Renderer:
             text (str): Message to render.
         """
         sw, sh = screen.get_size()
-        surf = self.font.render(text, True, (10, 10, 10))
+        font, color = self.fonts.get("title")
+        surf = font.render(text, True, color=color)
         screen.blit(
             surf, (sw // 2 - surf.get_width() // 2, sh // 2 - surf.get_height() // 2)
         )
@@ -302,8 +307,9 @@ class Renderer:
             )
             if selected:
                 # Unit name
-                name_surf = self.font.render(
-                    f"{selected['name'].capitalize()}", True, (0, 0, 0)
+                font, color = self.fonts.get("sidebar")
+                name_surf = font.render(
+                    f"{selected['name'].capitalize()}", True, color=color
                 )
                 screen.blit(name_surf, (20, y))
                 y += 30
@@ -316,7 +322,8 @@ class Renderer:
                     ("Attack range", selected["attack_range"]),
                 ]
                 for label, value in stats:
-                    surf = self.font.render(f"{label}: {value}", True, (0, 0, 0))
+                    font, color = self.fonts.get("sidebar")
+                    surf = font.render(f"{label}: {value}", True, color=color)
                     screen.blit(surf, (20, y))
                     y += 30
 
@@ -347,7 +354,8 @@ class Renderer:
             pygame.draw.rect(screen, color, rect, border_radius=8)
             pygame.draw.rect(screen, (100, 100, 100), rect, width=2, border_radius=8)
 
-            label = self.font.render(text, True, (20, 20, 20))
+            font, color = self.fonts.get("sidebar")
+            label = font.render(text, True, color=color)
             screen.blit(
                 label,
                 (
@@ -383,7 +391,8 @@ class Renderer:
                 bonus_parts.append("No bonus")
 
             bonus_text = f"{tile_name}: " + ", ".join(bonus_parts)
-            terr_surf = self.font.render(bonus_text, True, (0, 0, 0))
+            font, color = self.fonts.get("sidebar")
+            terr_surf = font.render(bonus_text, True, color=color)
             screen.blit(terr_surf, (20, y))
 
     def handle_sidebar_click(self, pos):

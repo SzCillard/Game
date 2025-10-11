@@ -114,7 +114,7 @@ def main():
     font = pygame.font.Font(None, 28)
 
     # --- Renderer and UI setup ---
-    game_renderer = Renderer(cell_size=CELL_SIZE, font=font)
+    game_renderer = Renderer(cell_size=CELL_SIZE)
     ui = UI(cell_size=CELL_SIZE, renderer=game_renderer)
 
     # --- Frame rate limiter ---
