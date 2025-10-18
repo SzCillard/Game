@@ -9,6 +9,7 @@ import pygame
 from utils.constants import (
     DIRS,
     EFFECTIVENESS,
+    HEALTH_INFLUENCE,
     TERRAIN_ATTACK_BONUS,
     TERRAIN_DEFENSE_BONUS,
     TERRAIN_MOVE_COST,
@@ -226,7 +227,10 @@ def calculate_damage(attacker, defender, game_state=None):
     health scaling, and terrain bonuses."""
 
     # --- 1) Base Power scaled by health ---
-    effective_power = attacker.attack_power * (attacker.health / attacker.max_hp)
+
+    ratio = attacker.health / attacker.max_hp
+    health_factor = (1 - HEALTH_INFLUENCE) + HEALTH_INFLUENCE * ratio
+    effective_power = attacker.attack_power * health_factor
 
     # --- 2) Armor as percentage reduction ---
     reduction = 100 / (100 + defender.armor * 10)  # e.g. armor 5 ≈ 33% reduction

@@ -103,8 +103,10 @@ EFFECTIVENESS = {
     "Archer": {"Swordsman": 1.0, "Horseman": 0.8, "Spearman": 1.0},
     "Swordsman": {"Archer": 1.0, "Horseman": 1.0, "Spearman": 1.0},
     "Horseman": {"Archer": 1.3, "Swordsman": 1.1, "Spearman": 0.8},
-    "Spearman": {"Archer": 1.0, "Swordsman": 0.8, "Horseman": 1.3},
+    "Spearman": {"Archer": 1.0, "Swordsman": 0.9, "Horseman": 1.3},
 }
+
+HEALTH_INFLUENCE = 0.9
 
 DAMAGE_DISPLAY_TIME = 30  # frames to show the number
 
