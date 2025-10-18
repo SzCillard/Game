@@ -2,6 +2,8 @@ import pickle
 
 import neat
 
+from ai.neat.neat_selfplay import SelfPlaySimulator
+
 
 class NEATTrainer:
     def __init__(self, config_path: str):
@@ -12,26 +14,24 @@ class NEATTrainer:
             neat.DefaultStagnation,
             config_path,
         )
+        self.sim = SelfPlaySimulator(self.config)
 
     def eval_genomes(self, genomes, config):
-        """Evaluate all genomes in one generation."""
-        for genome_id, genome in genomes:
-            net = neat.nn.FeedForwardNetwork.create(genome, config)
-            fitness = self.simulate_game(net)
-            genome.fitness = fitness
+        """Evaluate all genomes via pairwise self-play."""
+        for i, (gid_a, genome_a) in enumerate(genomes):
+            genome_a.fitness = 0
+            for j, (gid_b, genome_b) in enumerate(genomes):
+                if i == j:
+                    continue
+                f_a, f_b = self.sim.play_match(genome_a, genome_b)
+                genome_a.fitness += f_a
+                genome_b.fitness += f_b
 
-    def simulate_game(self, net):
-        """
-        Simulate a game round using the neural net as the decision policy.
-        Replace with actual API interactions (GameAPI simulation).
-        """
-        total_score = 0
-        # Example: call your simulation API to run AI vs random agent
-        # and compute fitness based on survival, damage, or wins
-        # total_score = simulate_match(net)
-        return total_score
+        # Optionally normalize by number of matches
+        for _, genome in genomes:
+            genome.fitness /= len(genomes) - 1
 
-    def run(self, generations=50):
+    def run(self, generations: int = 50):
         """Run evolution for N generations."""
         pop = neat.Population(self.config)
         pop.add_reporter(neat.StdOutReporter(True))
@@ -39,9 +39,8 @@ class NEATTrainer:
         pop.add_reporter(stats)
 
         winner = pop.run(self.eval_genomes, generations)
-
         print("\n🏆 Winner:", winner)
+
         with open("best_genome.pkl", "wb") as f:
             pickle.dump(winner, f)
-
         return winner
