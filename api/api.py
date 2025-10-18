@@ -104,9 +104,9 @@ class GameAPI:
     def apply_ui_action(self, action):
         return self.game_ui.apply_action(action, self)
 
-    def draw(self, screen, board_snapshot, selected_id=None):
+    def draw(self, screen, board_snapshot, selected_id=None, is_player_turn=False):
         # --- Sidebar first (so board draws next to it) ---
-        self.renderer.draw_sidebar(screen, board_snapshot, selected_id)
+        self.renderer.draw_sidebar(screen, board_snapshot, selected_id, is_player_turn)
 
         # --- Grid and units ---
         self.renderer.draw_grid(screen, board_snapshot)
@@ -120,17 +120,3 @@ class GameAPI:
 
     def draw_highlights(self, screen, move_tiles, attack_tiles):
         self.renderer.draw_highlights(screen, move_tiles, attack_tiles)
-
-
-"""
-def apply_action(self, action):
-    if action["type"] == "move":
-        unit = self.game_board.get_unit_by_id(action["unit_id"])
-        x, y = action["target"]
-        return self.request_move(unit, x, y)
-
-    if action["type"] == "attack":
-        attacker = self.game_board.get_unit_by_id(action["attacker_id"])
-        defender = self.game_board.get_unit_by_id(action["target_id"])
-        return self.request_attack(attacker, defender)
-"""

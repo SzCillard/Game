@@ -277,7 +277,7 @@ class Renderer:
     # Sidebar Rendering
     # ------------------------------
 
-    def draw_sidebar(self, screen, board_snapshot, selected_id):
+    def draw_sidebar(self, screen, board_snapshot, selected_id, is_player_turn=False):
         """
         Render the sidebar panel with unit info and action buttons.
 
@@ -293,6 +293,17 @@ class Renderer:
         )
 
         y = 20  # Vertical cursor for text placement
+
+        # --- Turn indicator ---
+        if is_player_turn:
+            font, color = self.fonts.get("sidebar")
+            turn_surf = font.render("It's your turn!", True, (0, 120, 0))
+        else:
+            font, color = self.fonts.get("sidebar")
+            turn_surf = font.render("Enemy turn...", True, (150, 0, 0))
+
+        screen.blit(turn_surf, (20, y))
+        y += 40  # Add spacing below the text
 
         # --- Selected unit info ---
         if selected_id is not None:
