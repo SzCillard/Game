@@ -167,14 +167,11 @@ class Renderer:
     def draw_units(self, screen, board_snapshot, selected_id=None):
         """
         Draw all units, their health bars, and any floating damage text.
-
-        Args:
-            screen (pygame.Surface): Display surface.
-            board_snapshot (dict): Contains 'units' and their current stats.
-            selected_id (Optional[int]): Currently selected unit ID.
+        Ensures correct draw order: units first, then UI overlays.
         """
         units = board_snapshot["units"]
 
+        # --- 1️⃣ Draw all unit sprites first ---
         for u in units:
             unit_type = UnitType[u["name"].upper()]
             team = u["team"] if isinstance(u["team"], TeamType) else TeamType(u["team"])
@@ -186,7 +183,6 @@ class Renderer:
                 self.cell_size,
             )
 
-            # Draw sprite or fallback rectangle
             img = self.unit_images.get(unit_type, {}).get(team)
             if img:
                 screen.blit(img, rect.topleft)
@@ -198,24 +194,22 @@ class Renderer:
                     border_radius=8,
                 )
 
-            # Draw health bar and damage text
+            # Cache screen rect for later overlay draws
+            u["_rect"] = rect
+
+        # --- 2️⃣ Draw overlays (HP bar + damage) separately ---
+        for u in units:
+            rect = u["_rect"]
             if "max_hp" in u:
                 self._draw_health_bar(screen, u, rect)
             self._draw_damage_number(screen, u, rect)
 
-        # Highlight the currently selected unit
+        # --- 3️⃣ Highlight selected unit on top of everything ---
         if selected_id is not None:
             selected = next((u for u in units if u["id"] == selected_id), None)
             if selected:
-                highlight = pygame.Rect(
-                    selected["x"] * self.cell_size + SIDEBAR_WIDTH,
-                    selected["y"] * self.cell_size,
-                    self.cell_size,
-                    self.cell_size,
-                )
-                pygame.draw.rect(
-                    screen, (255, 230, 80), highlight, width=3, border_radius=8
-                )
+                rect = selected["_rect"]
+                pygame.draw.rect(screen, (255, 230, 80), rect, width=3, border_radius=8)
 
     def _draw_health_bar(self, screen, unit: dict, rect: pygame.Rect):
         """
