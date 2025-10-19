@@ -96,7 +96,7 @@ class UI:
 
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = event.pos
-                    clicked = self.renderer.handle_sidebar_click(pos)
+                    clicked = self.renderer.handle_click(pos)
 
                     # Add unit
                     if clicked and clicked.startswith("add_"):
@@ -157,7 +157,7 @@ class UI:
 
             # --- Sidebar buttons ---
             if px < SIDEBAR_WIDTH and self.renderer:
-                clicked = self.renderer.handle_sidebar_click((px, py))
+                clicked = self.renderer.handle_click((px, py))
                 if clicked == "End Turn":
                     return {"type": "end_turn"}
                 elif clicked == "Menu":
