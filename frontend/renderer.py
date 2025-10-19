@@ -17,7 +17,7 @@ from utils.constants import (
     UnitType,
 )
 from utils.font_manager import FontManager
-from utils.helpers import load_unit_images
+from utils.helpers import load_single_image, load_unit_images
 
 
 class Renderer:
@@ -30,6 +30,7 @@ class Renderer:
         self.unit_images = load_unit_images(cell_size=cell_size)
         self.font_manager = FontManager()
         self.buttons = ButtonManager(self.font_manager)  # centralized button manager
+        self.coin_icon = load_single_image("assets/images/other/denarius.png", (28, 28))
 
     # ------------------------------
     # Start Menu
@@ -83,7 +84,19 @@ class Renderer:
         funds_text = font_text.render(
             f"Funds left: {funds_left}", True, (255, 255, 150)
         )
-        screen.blit(funds_text, (sw // 2 - funds_text.get_width() // 2, 100))
+
+        # Calculate centered position
+        text_x = sw // 2 - funds_text.get_width() // 2
+        text_y = 100
+        screen.blit(funds_text, (text_x, text_y))
+
+        # Add coin icon next to the text (right side or left side)
+        if self.coin_icon:
+            icon_y = (
+                text_y + (funds_text.get_height() - self.coin_icon.get_height()) // 2
+            )
+            icon_x = text_x + funds_text.get_width() + 10  # 10px gap to the right
+            screen.blit(self.coin_icon, (icon_x, icon_y))
 
         # --- Column headers ---
         headers = ["Unit", "Cost", "HP", "Armor", "ATK", "Range", "Mov"]

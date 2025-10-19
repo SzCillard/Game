@@ -10,6 +10,8 @@ This module:
 - Connects all backend (logic, engine, AI) and frontend (renderer, UI) components.
 """
 
+from pathlib import Path
+
 import pygame
 
 from ai.basic_agent import BasicAgent
@@ -118,9 +120,13 @@ def main():
     pygame.init()
     pygame.font.init()
 
-    # --- Set up window ---
-    icon = pygame.image.load("assets/images/game_icon/roman-helmet-32.png")
-    pygame.display.set_icon(icon)
+    # --- Set up window icon and caption BEFORE creating the window ---
+    icon_path = Path(__file__).parent / "assets/images/game_icon/roman-helmet-32.png"
+    try:
+        icon = pygame.image.load(str(icon_path))  # No convert_alpha() yet
+        pygame.display.set_icon(icon)
+    except Exception as e:
+        print(f"[Warning] Could not load window icon: {e}")
 
     screen = pygame.display.set_mode((SCREEN_W + SIDEBAR_WIDTH, SCREEN_H))
     pygame.display.set_caption("Commanders' Arena")

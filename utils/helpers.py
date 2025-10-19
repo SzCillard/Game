@@ -303,3 +303,14 @@ def load_unit_images(cell_size: int):
                 print(f"⚠️ Missing image: {path}")
                 images[unit][team] = None
     return images
+
+
+def load_single_image(path: str, size: Tuple[int, int]) -> Optional[pygame.Surface]:
+    """Load and scale a single image from the given path."""
+    if os.path.exists(path):
+        img = pygame.image.load(path).convert_alpha()
+        img = pygame.transform.scale(img, size)
+        return img
+    else:
+        print(f"⚠️ Missing image: {path}")
+        return None

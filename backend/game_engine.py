@@ -44,9 +44,6 @@ class GameEngine:
         self.selected_id: int | None = None
         self.current_team: TeamType = TeamType.PLAYER
 
-        # Notify start of player's turn
-        add_message("Player's turn!")
-
     # ------------------------------
     # Player Input Handling
     # ------------------------------
