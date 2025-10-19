@@ -16,7 +16,7 @@ from utils.constants import (
     TileHighlightType,
     UnitType,
 )
-from utils.fonts import FontManager
+from utils.font_manager import FontManager
 from utils.helpers import load_unit_images
 
 
@@ -28,8 +28,8 @@ class Renderer:
     def __init__(self, cell_size: int):
         self.cell_size = cell_size
         self.unit_images = load_unit_images(cell_size=cell_size)
-        self.fonts = FontManager()
-        self.buttons = ButtonManager()  # centralized button manager
+        self.font_manager = FontManager()
+        self.buttons = ButtonManager(self.font_manager)  # centralized button manager
 
     # ------------------------------
     # Start Menu
@@ -44,7 +44,7 @@ class Renderer:
         mouse_pos = pygame.mouse.get_pos()
 
         # --- Title ---
-        font, color = self.fonts.get("title")
+        font, color = self.font_manager.get("title")
         title_surf = font.render("Commanders' Arena", True, color=color)
         screen.blit(title_surf, (sw // 2 - title_surf.get_width() // 2, sh // 4 - 60))
 
@@ -56,7 +56,7 @@ class Renderer:
             btn_x = sw // 2 - btn_width // 2
             btn_y = sh // 2 - 40 + i * 80
             rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
-            btn_type = ButtonType.MENU if option.lower() != "quit" else ButtonType.QUIT
+            btn_type = ButtonType.MENU
             self.buttons.register(option, rect, btn_type)
             self.buttons.draw_button(screen, option, option, mouse_pos)
 
@@ -70,13 +70,13 @@ class Renderer:
         """Draw pre-battle army selection screen."""
         screen.fill((25, 25, 25))
         sw, sh = screen.get_size()
-        font_title, color_title = self.fonts.get("title")
-        font_text, color_text = self.fonts.get("sidebar")
+        font_title, color_title = self.font_manager.get("title")
+        font_text, color_text = self.font_manager.get("sidebar")
         mouse_pos = pygame.mouse.get_pos()
         self.buttons.buttons.clear()
 
         # --- Title ---
-        title = font_title.render("Select Your Army", True, color_title)
+        title = font_title.render("Build Your Army", True, color_title)
         screen.blit(title, (sw // 2 - title.get_width() // 2, 40))
 
         # --- Funds display ---
@@ -183,7 +183,7 @@ class Renderer:
             text (str): Message to render.
         """
         sw, sh = screen.get_size()
-        font, color = self.fonts.get("title")
+        font, color = self.font_manager.get("title")
         surf = font.render(text, True, color=color)
         screen.blit(
             surf, (sw // 2 - surf.get_width() // 2, sh // 2 - surf.get_height() // 2)
@@ -342,13 +342,13 @@ class Renderer:
     def draw_sidebar(self, screen, board_snapshot, selected_id, is_player_turn=False):
         """Render sidebar with info + menu buttons."""
         sidebar_rect = pygame.Rect(0, 0, SIDEBAR_WIDTH, SCREEN_H)
-        pygame.draw.rect(screen, (230, 230, 230), sidebar_rect)
+        pygame.draw.rect(screen, Color.DESERT.value, sidebar_rect)
         pygame.draw.line(
-            screen, (100, 100, 100), (SIDEBAR_WIDTH, 0), (SIDEBAR_WIDTH, SCREEN_H), 2
+            screen, Color.BLACK.value, (SIDEBAR_WIDTH, 0), (SIDEBAR_WIDTH, SCREEN_H), 2
         )
 
         y = 20
-        font, color = self.fonts.get("sidebar")
+        font, color = self.font_manager.get("sidebar")
         turn_text = "It's your turn!" if is_player_turn else "Enemy turn..."
         turn_color = (0, 120, 0) if is_player_turn else (150, 0, 0)
         turn_surf = font.render(turn_text, True, turn_color)
@@ -387,9 +387,7 @@ class Renderer:
             rect = pygame.Rect(
                 20, menu_y + i * (btn_height + 10), btn_width, btn_height
             )
-            btn_type = (
-                ButtonType.SIDEBAR if label.lower() != "quit" else ButtonType.QUIT
-            )
+            btn_type = ButtonType.SIDEBAR
             self.buttons.register(label, rect, btn_type)
             self.buttons.draw_button(screen, label, label, mouse_pos)
 
@@ -413,7 +411,7 @@ class Renderer:
             if not parts:
                 parts.append("No bonus")
             bonus_text = f"{tile_name}: {', '.join(parts)}"
-            font, color = self.fonts.get("sidebar")
+            font, color = self.font_manager.get("sidebar")
             screen.blit(font.render(bonus_text, True, color), (20, y))
 
     # ------------------------------

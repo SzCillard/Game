@@ -1,8 +1,12 @@
 from enum import Enum
+from typing import TYPE_CHECKING
 
 import pygame
 
 from utils.constants import Color
+
+if TYPE_CHECKING:
+    from utils.font_manager import FontManager
 
 
 class ButtonType(Enum):
@@ -13,6 +17,15 @@ class ButtonType(Enum):
     START_GAME = "start_game"
     QUIT = "quit"
 
+
+BUTTON_TO_FONT_TYPE_MAP = {
+    ButtonType.MENU: "menu",
+    ButtonType.SIDEBAR: "sidebar",
+    ButtonType.ADD: "sidebar",
+    ButtonType.REMOVE: "sidebar",
+    ButtonType.START_GAME: "menu",
+    ButtonType.QUIT: "quit",
+}
 
 # ------------------------------
 # 🎨 Centralized Button Colors
@@ -28,12 +41,12 @@ BUTTON_COLORS = {
 }
 
 HOVER_COLORS = {
-    ButtonType.MENU: Color.GRAY.value,
+    ButtonType.MENU: Color.YELLOW.value,
     ButtonType.SIDEBAR: Color.DARK_DESERT.value,
-    ButtonType.ADD: Color.GREEN.value,
+    ButtonType.ADD: Color.DARK_GREEN.value,
     ButtonType.REMOVE: Color.DARK_RED.value,
-    ButtonType.START_GAME: Color.GREEN.value,
-    ButtonType.QUIT: Color.DARK_GRAY.value,
+    ButtonType.START_GAME: Color.DARK_GREEN.value,
+    ButtonType.QUIT: Color.YELLOW.value,
 }
 
 
@@ -45,8 +58,8 @@ HOVER_COLORS = {
 class ButtonManager:
     """Handles button drawing, hover effects, and style consistency."""
 
-    def __init__(self, font=None):
-        self.font = font or pygame.font.Font(None, 26)
+    def __init__(self, font_manager: "FontManager"):
+        self.font_manager = font_manager
         self.buttons = {}  # {name: {"rect": Rect, "type": ButtonType}}
 
     def register(self, name: str, rect: pygame.Rect, btn_type: ButtonType):
@@ -78,7 +91,8 @@ class ButtonManager:
         pygame.draw.rect(screen, Color.DARK_GRAY.value, rect, 2, border_radius=8)
 
         # Text
-        label_surf = self.font.render(label, True, (0, 0, 0))
+        font, color = self.font_manager.get(BUTTON_TO_FONT_TYPE_MAP[btn_type])
+        label_surf = font.render(label, True, color)
         screen.blit(
             label_surf,
             (

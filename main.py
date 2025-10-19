@@ -119,10 +119,11 @@ def main():
     pygame.font.init()
 
     # --- Set up window ---
+    icon = pygame.image.load("assets/images/game_icon/roman-helmet-32.png")
+    pygame.display.set_icon(icon)
+
     screen = pygame.display.set_mode((SCREEN_W + SIDEBAR_WIDTH, SCREEN_H))
     pygame.display.set_caption("Commanders' Arena")
-    icon = pygame.image.load("assets/images/game_icon/roman-helmet.png")
-    pygame.display.set_icon(icon)
 
     # --- Prepare default font ---
     font = pygame.font.Font(None, 28)

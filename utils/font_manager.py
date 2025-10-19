@@ -18,6 +18,8 @@ class FontType(Enum):
     SIDEBAR = "sidebar"
     DAMAGE = "damage"
     TITLE = "title"
+    START_GAME = "start_game"
+    QUIT = "quit"
 
 
 FONT_FAMILIES = {

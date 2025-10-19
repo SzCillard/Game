@@ -18,6 +18,7 @@ class Color(Enum):
     YELLOW = (255, 230, 80)
     BLUE = (0, 150, 255)
     CYAN = (0, 153, 153)
+    DESERT = (255, 204, 102)
     ORANGE_DESERT = (255, 173, 51)
     DARK_DESERT = (230, 138, 0)
     # Optional: highlights, terrain tints
