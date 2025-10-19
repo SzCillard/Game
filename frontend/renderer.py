@@ -72,7 +72,7 @@ class Renderer:
 
             # Hover and selection
             if btn_rect.collidepoint(mouse_x, mouse_y):
-                color = (255, 230, 80)
+                color = Color.YELLOW.value
             elif i == selected_index:
                 color = (255, 255, 150)
             else:
@@ -96,61 +96,104 @@ class Renderer:
     def draw_draft_screen(
         self, screen, available_units, selected_units, funds_left
     ) -> None:
-        """Draw the pre-battle draft/army selection screen."""
+        """
+        Draw the pre-battle draft/army selection screen with readable stats layout.
+        Compact design prevents overlap with Add/Remove buttons.
+        """
         screen.fill((25, 25, 25))
         sw, sh = screen.get_size()
         font_title, color_title = self.fonts.get("title")
         font_text, color_text = self.fonts.get("sidebar")
 
-        # Title
+        # --- Title ---
         title = font_title.render("Select Your Army", True, color_title)
         screen.blit(title, (sw // 2 - title.get_width() // 2, 40))
 
-        # Funds display
+        # --- Funds display ---
         funds_text = font_text.render(
             f"Funds left: {funds_left}", True, (255, 255, 150)
         )
         screen.blit(funds_text, (sw // 2 - funds_text.get_width() // 2, 100))
 
-        # Unit List
+        # --- Column headers (fewer, compact) ---
+        headers = ["Unit", "Cost", "HP", "Armor", "ATK", "Range", "Mov"]
+        header_x_positions = [150, 360, 430, 490, 550, 610, 670]  # tighter spacing
+        for hx, header in zip(header_x_positions, headers):
+            hsurf = font_text.render(header, True, (200, 200, 200))
+            screen.blit(hsurf, (hx, 150))
+
+        # --- Layout settings ---
         start_y = 180
-        btn_w, btn_h = 80, 35
-        self.sidebar_buttons.clear()  # reuse this dict to track buttons
+        row_height = 55
+        btn_w, btn_h = 60, 30
+        self.sidebar_buttons.clear()
 
+        # --- Unit rows ---
         for i, (name, data) in enumerate(available_units.items()):
-            y = start_y + i * 70
+            y = start_y + i * row_height
 
-            # Draw unit info
-            info_text = f"{name} (Cost: {data['cost']})"
-            surf = font_text.render(info_text, True, (220, 220, 220))
-            screen.blit(surf, (150, y))
+            # Alternate row background for readability
+            if i % 2 == 0:
+                pygame.draw.rect(
+                    screen, (35, 35, 35), (130, y - 8, sw - 280, row_height)
+                )
 
-            # Add button
-            add_rect = pygame.Rect(sw - 260, y, btn_w, btn_h)
-            rem_rect = pygame.Rect(sw - 160, y, btn_w, btn_h)
-            pygame.draw.rect(screen, (70, 200, 70), add_rect, border_radius=8)
-            pygame.draw.rect(screen, (200, 70, 70), rem_rect, border_radius=8)
+            # --- Unit name ---
+            font_color = Color.LIGHT_GRAY.value
+            name_surf = font_text.render(name, True, font_color)
+            screen.blit(name_surf, (150, y))
+
+            # --- Compact stats row ---
+            stats = [
+                data.get("cost", 0),
+                data.get("health", 0),
+                data.get("armor", 0),
+                data.get("attack_power", 0),
+                data.get("attack_range", 0),
+                data.get("move_range", 0),
+            ]
+            for val, x in zip(stats, header_x_positions[1:]):
+                surf = font_text.render(str(val), True, font_color)
+                screen.blit(surf, (x, y))
+
+            # --- Add / Remove buttons ---
+            add_rect = pygame.Rect(sw - 190, y, btn_w, btn_h)
+            rem_rect = pygame.Rect(sw - 120, y, btn_w, btn_h)
+
+            pygame.draw.rect(screen, Color.LIGHT_GREEN.value, add_rect, border_radius=6)
+            pygame.draw.rect(screen, (200, 70, 70), rem_rect, border_radius=6)
+
             self.sidebar_buttons[f"add_{name}"] = add_rect
             self.sidebar_buttons[f"rem_{name}"] = rem_rect
 
-            add_label = font_text.render("+", True, (255, 255, 255))
-            rem_label = font_text.render("-", True, (255, 255, 255))
+            add_label = font_text.render("+", True, Color.WHITE.value)
+            rem_label = font_text.render("-", True, Color.WHITE.value)
             screen.blit(add_label, (add_rect.centerx - 5, add_rect.centery - 10))
             screen.blit(rem_label, (rem_rect.centerx - 5, rem_rect.centery - 10))
 
-        # Player's selected army
+        # --- Player's selected army summary ---
         screen.blit(
-            font_text.render("Your Army:", True, (255, 255, 255)), (150, sh - 180)
+            font_text.render("Your Army:", True, Color.WHITE.value),
+            (150, sh - 180),
         )
         y = sh - 150
         for unit in selected_units:
             unit_text = font_text.render(unit, True, (200, 200, 200))
             screen.blit(unit_text, (180, y))
-            y += 30
+            y += 28
 
-        # Start battle button
+        # --- Start battle button ---
         start_rect = pygame.Rect(sw // 2 - 100, sh - 70, 200, 50)
-        pygame.draw.rect(screen, (255, 230, 80), start_rect, border_radius=12)
+
+        # Hover effect
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        btn_color = (
+            Color.YELLOW.value
+            if start_rect.collidepoint(mouse_x, mouse_y)
+            else Color.LIGHT_GREEN.value
+        )
+
+        pygame.draw.rect(screen, btn_color, start_rect, border_radius=12)
         label = font_text.render("Start Battle", True, (0, 0, 0))
         screen.blit(
             label,
@@ -282,7 +325,9 @@ class Renderer:
             selected = next((u for u in units if u["id"] == selected_id), None)
             if selected:
                 rect = selected["_rect"]
-                pygame.draw.rect(screen, (255, 230, 80), rect, width=3, border_radius=8)
+                pygame.draw.rect(
+                    screen, Color.YELLOW.value, rect, width=3, border_radius=8
+                )
 
     def _draw_health_bar(self, screen, unit: dict, rect: pygame.Rect):
         """
@@ -425,7 +470,7 @@ class Renderer:
 
             # Hover effect
             color = (
-                (255, 230, 80)
+                Color.YELLOW.value
                 if rect.collidepoint(mouse_x, mouse_y)
                 else (200, 200, 200)
             )
