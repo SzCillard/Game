@@ -73,6 +73,7 @@ UNIT_STATS = {
         "attack_power": 50,
         "attack_range": 1,
         "move_range": 2.0,
+        "cost": 20,
     },
     "Archer": {
         "health": 70,
@@ -80,6 +81,7 @@ UNIT_STATS = {
         "attack_power": 45,
         "attack_range": 3,
         "move_range": 3.0,
+        "cost": 25,
     },
     "Horseman": {
         "health": 100,
@@ -87,16 +89,21 @@ UNIT_STATS = {
         "attack_power": 50,
         "attack_range": 1,
         "move_range": 4.0,
+        "cost": 30,
     },
     "Spearman": {
-        "health": 110,
+        "health": 115,
         "armor": 35,
         "attack_power": 50,
         "attack_range": 1,
         "move_range": 2.0,
+        "cost": 20,
     },
 }
 
+# Battle setup
+
+STARTING_FUNDS = 100  # starting funds per player
 
 # Effectiveness multipliers: attacker -> defender
 EFFECTIVENESS = {
