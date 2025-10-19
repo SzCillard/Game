@@ -10,45 +10,48 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # 1. Checkout your code
+      # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Set up Python via Poetry
+      # 2️⃣ Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.13
 
+      # 3️⃣ Upgrade pip and install Poetry
       - name: Install Poetry
         run: |
           python -m pip install --upgrade pip
           pip install poetry
 
+      # 4️⃣ Install project dependencies
       - name: Install dependencies
         run: |
           poetry install --only main
 
-      # 3. Install PyInstaller
+      # 5️⃣ Install PyInstaller
       - name: Install PyInstaller
         run: poetry add --dev pyinstaller
 
-      # 4. Build EXE
+      # 6️⃣ Build EXE with assets
       - name: Build EXE
         run: |
+          # Use --add-data to include assets folder
           poetry run pyinstaller --onefile --name "CommandersArena" \
             --add-data "assets;assets" main.py
 
-      # 5. Package EXE + assets (optional, safer)
-      - name: Create ZIP
+      # 7️⃣ Prepare ZIP package
+      - name: Package EXE and assets
         run: |
           mkdir dist_package
           copy dist\CommandersArena.exe dist_package\
           xcopy /E /I assets dist_package\assets\
           powershell Compress-Archive -Path dist_package/* -DestinationPath dist/CommandersArena.zip
 
-      # 6. Upload artifact
-      - name: Upload ZIP
+      # 8️⃣ Upload ZIP artifact for download
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: CommandersArena
