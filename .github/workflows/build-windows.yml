@@ -26,28 +26,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
 
-      # 4️⃣ Disable package mode (if this is not a Python library)
-      - name: Disable Poetry package mode
-        run: |
-          poetry config virtualenvs.in-project true
-          echo 'package-mode = false' >> pyproject.toml
-
-      # 5️⃣ Install dependencies
+      # 4️⃣ Install dependencies (no packaging)
       - name: Install dependencies
         run: |
           poetry install --no-root
 
-      # 6️⃣ Install PyInstaller
+      # 5️⃣ Install PyInstaller
       - name: Install PyInstaller
         run: poetry add --dev pyinstaller
 
-      # 7️⃣ Build EXE with assets
+      # 6️⃣ Build EXE with assets
       - name: Build EXE
         run: |
           poetry run pyinstaller --onefile --name "CommandersArena" `
             --add-data "assets;assets" main.py
 
-      # 8️⃣ Package EXE and assets into a ZIP
+      # 7️⃣ Package EXE and assets into a ZIP
       - name: Package EXE and assets
         shell: pwsh
         run: |
@@ -56,7 +50,7 @@ jobs:
           Copy-Item "assets" -Destination "dist_package\assets" -Recurse
           Compress-Archive -Path "dist_package\*" -DestinationPath "dist\CommandersArena.zip"
 
-      # 9️⃣ Upload ZIP artifact for download
+      # 8️⃣ Upload ZIP artifact for download
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
