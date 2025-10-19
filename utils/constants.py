@@ -11,11 +11,15 @@ class Color(Enum):
     DARK_GRAY = (60, 60, 60)
 
     RED = (200, 50, 50)
+    DARK_RED = (163, 41, 41)
+    DARK_GREEN = (0, 153, 51)
     GREEN = (0, 200, 0)
+    LIGHT_GREEN = (51, 204, 51)
     YELLOW = (255, 230, 80)
     BLUE = (0, 150, 255)
     CYAN = (0, 153, 153)
-
+    ORANGE_DESERT = (255, 173, 51)
+    DARK_DESERT = (230, 138, 0)
     # Optional: highlights, terrain tints
     GRASS = (153, 204, 140)
     HILL = (195, 205, 170)

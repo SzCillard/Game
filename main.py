@@ -37,12 +37,14 @@ from utils.music_utils import play_menu_music
 # ======================================================================
 
 
-def create_game(ui: UI) -> GameAPI:
+def create_game(ui: UI, player_unit_names: list[str]) -> GameAPI:
     """
     Create a new game session with map, logic, renderer, and units.
 
     Args:
         ui (UI): The active user interface instance (used for rendering and menus).
+        player_unit_names (list[str]): Names of units selected
+        by the player in the draft.
 
     Returns:
         GameAPI: The fully initialized game API instance ready for GameEngine.
@@ -70,22 +72,32 @@ def create_game(ui: UI) -> GameAPI:
         ai_team=TeamType.AI,
     )
 
-    # --- Place units on both teams ---
-    # Player units (bottom-left area)
-    p1 = [
-        Swordsman(1, 1, team=TeamType.PLAYER),
-        Archer(2, 2, team=TeamType.PLAYER),
-        Horseman(1, 2, team=TeamType.PLAYER),
-        Spearman(2, 1, team=TeamType.PLAYER),
-    ]
+    # --- Place PLAYER units based on selection ---
+    unit_classes = {
+        "Swordsman": Swordsman,
+        "Archer": Archer,
+        "Horseman": Horseman,
+        "Spearman": Spearman,
+    }
 
-    # AI units (top-right area)
+    p1 = []
+    x, y = 1, 1
+    for name in player_unit_names:
+        if name not in unit_classes:
+            continue
+        cls = unit_classes[name]
+        p1.append(cls(x, y, team=TeamType.PLAYER))
+        x += 1
+        if x > 3:  # basic formation
+            x = 1
+            y += 1
+
+    # --- AI units (basic mirror for now) ---
     p2 = [
         Swordsman(GRID_W - 2, GRID_H - 2, team=TeamType.AI),
         Archer(GRID_W - 3, GRID_H - 2, team=TeamType.AI),
         Horseman(GRID_W - 2, GRID_H - 3, team=TeamType.AI),
-        Horseman(GRID_W - 3, GRID_H - 3, team=TeamType.AI),
-        Spearman(GRID_W - 4, GRID_H - 2, team=TeamType.AI),
+        Spearman(GRID_W - 3, GRID_H - 3, team=TeamType.AI),
     ]
 
     # Register all units on the board
@@ -130,29 +142,33 @@ def main():
         # --- Display the main menu ---
         play_menu_music()
         choice = ui.start_menu(screen, font)
-
         if choice == "quit":
-            # Player chose to exit directly from menu
             break
 
-        # Create a new log file for the session
-        create_log_file()
+        if choice == "start_game":
+            # --- Draft / Army Selection Phase ---
+            selected_units = ui.draft_menu(screen)
+            if not selected_units:
+                continue  # Return to main menu if canceled
 
-        # --- Start a new match ---
-        game_api = create_game(ui)
-        engine = GameEngine(game_api, screen, font, clock)
+            # --- Create a new log file for the session ---
+            create_log_file()
 
-        # Run the main game loop
-        result = engine.run()
+            # --- Start a new match with selected units ---
+            game_api = create_game(ui, selected_units)
+            engine = GameEngine(game_api, screen, font, clock)
 
-        # --- Handle post-game result ---
-        if result is False:  # Quit requested mid-game
-            running = False
-        elif result == "menu":  # Back to main menu
-            continue
-        else:
-            # Normal match completion → automatically return to menu
-            continue
+            # --- Run the main battle loop ---
+            result = engine.run()
+
+            # --- Handle post-game result ---
+            if result is False:  # Quit mid-game
+                running = False
+            elif result == "menu":
+                continue
+            else:
+                # Normal match completion → return to menu
+                continue
 
     # --- Cleanup ---
     pygame.quit()
