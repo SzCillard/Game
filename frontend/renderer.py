@@ -49,6 +49,7 @@ class Renderer:
     # ------------------------------
     # Start Menu
     # ------------------------------
+
     def draw_start_menu(
         self, screen: pygame.Surface, selected_index: int, options: list[str]
     ) -> None:
@@ -87,6 +88,78 @@ class Renderer:
                     btn_y + btn_height // 2 - text_surf.get_height() // 2,
                 ),
             )
+
+    # ------------------------------
+    # Draft Menu
+    # ------------------------------
+
+    def draw_draft_screen(
+        self, screen, available_units, selected_units, funds_left
+    ) -> None:
+        """Draw the pre-battle draft/army selection screen."""
+        screen.fill((25, 25, 25))
+        sw, sh = screen.get_size()
+        font_title, color_title = self.fonts.get("title")
+        font_text, color_text = self.fonts.get("sidebar")
+
+        # Title
+        title = font_title.render("Select Your Army", True, color_title)
+        screen.blit(title, (sw // 2 - title.get_width() // 2, 40))
+
+        # Funds display
+        funds_text = font_text.render(
+            f"Funds left: {funds_left}", True, (255, 255, 150)
+        )
+        screen.blit(funds_text, (sw // 2 - funds_text.get_width() // 2, 100))
+
+        # Unit List
+        start_y = 180
+        btn_w, btn_h = 80, 35
+        self.sidebar_buttons.clear()  # reuse this dict to track buttons
+
+        for i, (name, data) in enumerate(available_units.items()):
+            y = start_y + i * 70
+
+            # Draw unit info
+            info_text = f"{name} (Cost: {data['cost']})"
+            surf = font_text.render(info_text, True, (220, 220, 220))
+            screen.blit(surf, (150, y))
+
+            # Add button
+            add_rect = pygame.Rect(sw - 260, y, btn_w, btn_h)
+            rem_rect = pygame.Rect(sw - 160, y, btn_w, btn_h)
+            pygame.draw.rect(screen, (70, 200, 70), add_rect, border_radius=8)
+            pygame.draw.rect(screen, (200, 70, 70), rem_rect, border_radius=8)
+            self.sidebar_buttons[f"add_{name}"] = add_rect
+            self.sidebar_buttons[f"rem_{name}"] = rem_rect
+
+            add_label = font_text.render("+", True, (255, 255, 255))
+            rem_label = font_text.render("-", True, (255, 255, 255))
+            screen.blit(add_label, (add_rect.centerx - 5, add_rect.centery - 10))
+            screen.blit(rem_label, (rem_rect.centerx - 5, rem_rect.centery - 10))
+
+        # Player's selected army
+        screen.blit(
+            font_text.render("Your Army:", True, (255, 255, 255)), (150, sh - 180)
+        )
+        y = sh - 150
+        for unit in selected_units:
+            unit_text = font_text.render(unit, True, (200, 200, 200))
+            screen.blit(unit_text, (180, y))
+            y += 30
+
+        # Start battle button
+        start_rect = pygame.Rect(sw // 2 - 100, sh - 70, 200, 50)
+        pygame.draw.rect(screen, (255, 230, 80), start_rect, border_radius=12)
+        label = font_text.render("Start Battle", True, (0, 0, 0))
+        screen.blit(
+            label,
+            (
+                start_rect.centerx - label.get_width() // 2,
+                start_rect.centery - label.get_height() // 2,
+            ),
+        )
+        self.sidebar_buttons["start_battle"] = start_rect
 
     # ------------------------------
     # Board Rendering
@@ -400,7 +473,7 @@ class Renderer:
             terr_surf = font.render(bonus_text, True, color=color)
             screen.blit(terr_surf, (20, y))
 
-    def handle_sidebar_click(self, pos):
+    def handle_sidebar_click(self, pos) -> str | None:
         """
         Check if a sidebar button was clicked.
 
