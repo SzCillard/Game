@@ -17,7 +17,7 @@ from utils.constants import (
     UnitType,
 )
 from utils.font_manager import FontManager
-from utils.helpers import load_single_image, load_unit_images
+from utils.image_helpers import load_single_image, load_unit_images
 
 
 class Renderer:
