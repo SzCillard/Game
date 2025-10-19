@@ -14,8 +14,8 @@ import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from backend.units import Unit
-from utils.constants import TERRAIN_MOVE_COST, TileType
+from backend.units import Archer, Horseman, Spearman, Swordsman, Unit
+from utils.constants import TERRAIN_MOVE_COST, TeamType, TileType
 
 # ======================================================================
 # 🎯 Core Game State
@@ -40,7 +40,12 @@ class GameState:
     cell_size: int
     tile_map: List[List[TileType]] = field(default_factory=list)
     units: List[Unit] = field(default_factory=list)
-
+    unit_classes = {
+        "Swordsman": Swordsman,
+        "Archer": Archer,
+        "Horseman": Horseman,
+        "Spearman": Spearman,
+    }
     # ------------------------------
     # Basic Grid Operations
     # ------------------------------
@@ -79,16 +84,57 @@ class GameState:
     # Unit Management
     # ------------------------------
 
-    def add_unit(self, unit: Unit) -> None:
+    def add_units(self, unit_name_list: list[str], team: TeamType) -> None:
         """
-        Add a unit to the board and initialize its per-turn properties.
+        Add units to the board and initialize their starting positions.
+        - Player units spawn on the bottom-left area.
+        - Enemy units spawn on the top-right area.
+        - Units avoid impassable tiles and existing units.
+        """
+        spacing_x = 2
+        spacing_y = 1
+        units_per_row = 3
 
-        Args:
-            unit (Unit): The unit to add.
-        """
-        setattr(unit, "move_points", getattr(unit, "move_range", 0))
-        setattr(unit, "has_attacked", False)
-        self.units.append(unit)
+        # Define spawn zones
+        if team == TeamType.PLAYER:
+            start_x = 1
+            start_y = self.height - 4  # Bottom rows
+            x_dir = 1
+            y_dir = 1
+        else:
+            start_x = self.width - 6  # Top rows, right side
+            start_y = 1
+            x_dir = 1
+            y_dir = 1
+
+        x, y = start_x, start_y
+
+        for i, name in enumerate(unit_name_list):
+            unit_class = self.unit_classes[name]
+
+            # --- Find a nearby valid tile ---
+            found = False
+            for dy in range(-1, 3):  # small search window
+                for dx in range(-1, 3):
+                    tx, ty = x + dx, y + dy
+                    if self.is_passable(tx, ty):
+                        x, y = tx, ty
+                        found = True
+                        break
+                if found:
+                    break
+
+            # --- Spawn unit ---
+            new_unit = unit_class(x, y, team=team)
+            new_unit.move_points = getattr(new_unit, "move_range", 0)
+            new_unit.has_attacked = False
+            self.units.append(new_unit)
+
+            # --- Increment placement position ---
+            x += spacing_x * x_dir
+            if (i + 1) % units_per_row == 0:
+                x = start_x
+                y += spacing_y * y_dir
 
     def get_unit_at(self, x: int, y: int) -> Optional[Unit]:
         """

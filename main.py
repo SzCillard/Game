@@ -15,11 +15,11 @@ from pathlib import Path
 import pygame
 
 from ai.basic_agent import BasicAgent
+from ai.draft_helper import get_ai_draft_units
 from api.api import GameAPI
 from backend.board import GameState, create_random_map
 from backend.game_engine import GameEngine
 from backend.logic import GameLogic
-from backend.units import Archer, Horseman, Spearman, Swordsman
 from frontend.renderer import Renderer
 from frontend.ui import UI
 from utils.constants import (
@@ -74,37 +74,15 @@ def create_game(ui: UI, player_unit_names: list[str]) -> GameAPI:
         ai_team=TeamType.AI,
     )
 
-    # --- Place PLAYER units based on selection ---
-    unit_classes = {
-        "Swordsman": Swordsman,
-        "Archer": Archer,
-        "Horseman": Horseman,
-        "Spearman": Spearman,
-    }
+    # --- Add PLAYER units based on selection ---
 
-    p1 = []
-    x, y = 1, 1
-    for name in player_unit_names:
-        if name not in unit_classes:
-            continue
-        cls = unit_classes[name]
-        p1.append(cls(x, y, team=TeamType.PLAYER))
-        x += 1
-        if x > 3:  # basic formation
-            x = 1
-            y += 1
+    game_api.game_board.add_units(player_unit_names, team=TeamType.PLAYER)
 
     # --- AI units (basic mirror for now) ---
-    p2 = [
-        Swordsman(GRID_W - 2, GRID_H - 2, team=TeamType.AI),
-        Archer(GRID_W - 3, GRID_H - 2, team=TeamType.AI),
-        Horseman(GRID_W - 2, GRID_H - 3, team=TeamType.AI),
-        Spearman(GRID_W - 3, GRID_H - 3, team=TeamType.AI),
-    ]
 
-    # Register all units on the board
-    for u in p1 + p2:
-        game_api.game_board.add_unit(u)
+    ai_draft_names: list[str] = get_ai_draft_units(funds=100)
+
+    game_api.game_board.add_units(ai_draft_names, team=TeamType.AI)
 
     return game_api
 

@@ -53,6 +53,9 @@ class GameAPI:
         """Return the unit at (x,y) or None if empty"""
         return self.game_board.get_unit_at(x, y)
 
+    def add_units(self, unit_name_list: list[str], team: TeamType) -> None:
+        self.game_board.add_units(unit_name_list, team)
+
     def is_game_over(self):
         return self.game_logic.is_game_over()
 
