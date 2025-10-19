@@ -1,0 +1,55 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      # 1. Checkout your code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Set up Python via Poetry
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.13
+
+      - name: Install Poetry
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+
+      - name: Install dependencies
+        run: |
+          poetry install --only main
+
+      # 3. Install PyInstaller
+      - name: Install PyInstaller
+        run: poetry add --dev pyinstaller
+
+      # 4. Build EXE
+      - name: Build EXE
+        run: |
+          poetry run pyinstaller --onefile --name "CommandersArena" \
+            --add-data "assets;assets" main.py
+
+      # 5. Package EXE + assets (optional, safer)
+      - name: Create ZIP
+        run: |
+          mkdir dist_package
+          copy dist\CommandersArena.exe dist_package\
+          xcopy /E /I assets dist_package\assets\
+          powershell Compress-Archive -Path dist_package/* -DestinationPath dist/CommandersArena.zip
+
+      # 6. Upload artifact
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: CommandersArena
+          path: dist/CommandersArena.zip
