@@ -1,23 +1,26 @@
+# utils/music_utils.py
+
 import pygame
+
+from utils.path_utils import get_asset_path
 
 
 def _stop_music():
-    """Stop all currently playing music."""
-    pygame.mixer.music.fadeout(2000)  # fade out over 2 seconds
+    pygame.mixer.music.fadeout(2000)
     pygame.mixer.music.stop()
 
 
 def play_music(path: str, volume: float = 0.4):
     _stop_music()
     pygame.mixer.init()
-    pygame.mixer.music.load(path)
+    pygame.mixer.music.load(get_asset_path(path))
     pygame.mixer.music.set_volume(volume)
-    pygame.mixer.music.play(-1)  # -1 means loop indefinitely
+    pygame.mixer.music.play(-1)
 
 
 def play_menu_music():
     play_music(
-        "assets/music/menu/Teutoburg (Ancient Germania Music - The Battle of Teutoburg Forest).mp3",
+        "assets/music/menu/Teutoburg.mp3",
         volume=0.5,
     )
 
