@@ -33,7 +33,7 @@ jobs:
 
       # 5️⃣ Install PyInstaller
       - name: Install PyInstaller
-        run: poetry add --dev pyinstaller
+        run: poetry run pip install pyinstaller
 
       # 6️⃣ Build EXE with assets
       - name: Build EXE
