@@ -3,10 +3,11 @@ import pickle
 import neat
 
 from ai.neat.neat_selfplay import SelfPlaySimulator
+from api.api import GameAPI
 
 
 class NEATTrainer:
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, game_api: "GameAPI"):
         self.config = neat.Config(
             neat.DefaultGenome,
             neat.DefaultReproduction,
@@ -14,7 +15,8 @@ class NEATTrainer:
             neat.DefaultStagnation,
             config_path,
         )
-        self.sim = SelfPlaySimulator(self.config)
+        self.game_api = game_api
+        self.sim = SelfPlaySimulator(self.config, game_api=game_api)
 
     def eval_genomes(self, genomes, config):
         """Evaluate all genomes via pairwise self-play."""

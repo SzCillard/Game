@@ -1,6 +1,7 @@
 # ai/neat/neat_selfplay.py
 import numpy as np
 
+from ai.draft_helper import get_ai_draft_units
 from ai.neat.neat_network import NEATNetwork
 from api.api import GameAPI
 from backend.board import GameState, create_random_map
@@ -15,6 +16,7 @@ class SelfPlaySimulator:
 
     def __init__(self, config, game_api: "GameAPI"):
         self.config = config
+        self.game_api = game_api
 
     def play_match(self, genome_a, genome_b):
         """
@@ -34,16 +36,18 @@ class SelfPlaySimulator:
         )
         logic = GameLogic(gs)
 
-        # Add a few test units per team
-        logic.add_default_units()
+        # Add a few test units per team (currently only for one team)
+        ai_draft_names: list[str] = get_ai_draft_units(funds=100)
+
+        self.game_api.add_units(ai_draft_names, team=TeamType.AI)
 
         # Game loop (simplified)
         max_turns = 30
         for _ in range(max_turns):
             for team, net in [(TeamType.PLAYER, net_a), (TeamType.AI, net_b)]:
-                state = gs.to_dict()  # or logic.get_snapshot()
+                state = gs.get_snapshot()  # or logic.get_snapshot()
                 inputs = self.extract_features(state, team)
-                outputs = net.activate(inputs)
+                outputs = net.predict(inputs)
                 self.apply_action(outputs, logic, team)
 
                 if logic.is_game_over():
