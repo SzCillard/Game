@@ -50,40 +50,44 @@ def create_game(ui: UI, player_unit_names: list[str]) -> GameAPI:
     Returns:
         GameAPI: The fully initialized game API instance ready for GameEngine.
     """
-    # --- Initialize core game state ---
-    game_state = GameState(
-        width=GRID_W,
-        height=GRID_H,
-        cell_size=CELL_SIZE,
-        tile_map=create_random_map(GRID_W, GRID_H),  # Procedurally generate terrain
-    )
+    try:
+        # --- Initialize core game state ---
+        game_state = GameState(
+            width=GRID_W,
+            height=GRID_H,
+            cell_size=CELL_SIZE,
+            tile_map=create_random_map(GRID_W, GRID_H),  # Procedurally generate terrain
+        )
 
-    # --- Create supporting systems ---
-    game_logic = GameLogic(game_state=game_state)
-    game_renderer = ui.renderer  # Share same renderer between UI and gameplay
+        # --- Create supporting systems ---
+        game_logic = GameLogic(game_state=game_state)
+        game_renderer = ui.renderer  # Share same renderer between UI and gameplay
 
-    # --- Combine everything into the API interface ---
-    game_api = GameAPI(
-        game_ui=ui,
-        renderer=game_renderer,
-        game_board=game_state,
-        game_logic=game_logic,
-        agent=BasicAgent(),  # Default AI
-        player_team=TeamType.PLAYER,
-        ai_team=TeamType.AI,
-    )
+        # --- Combine everything into the API interface ---
+        game_api = GameAPI(
+            game_ui=ui,
+            renderer=game_renderer,
+            game_board=game_state,
+            game_logic=game_logic,
+            agent=BasicAgent(),  # Default AI
+            player_team=TeamType.PLAYER,
+            ai_team=TeamType.AI,
+        )
 
-    # --- Add PLAYER units based on selection ---
+        # --- Add PLAYER units based on selection ---
 
-    game_api.game_board.add_units(player_unit_names, team=TeamType.PLAYER)
+        game_api.game_board.add_units(player_unit_names, team=TeamType.PLAYER)
 
-    # --- AI units (basic mirror for now) ---
+        # --- AI units (basic mirror for now) ---
 
-    ai_draft_names: list[str] = get_ai_draft_units(funds=100)
+        ai_draft_names: list[str] = get_ai_draft_units(funds=100)
 
-    game_api.game_board.add_units(ai_draft_names, team=TeamType.AI)
+        game_api.game_board.add_units(ai_draft_names, team=TeamType.AI)
 
-    return game_api
+        return game_api
+    except Exception as e:
+        logger(f"Error during game creation: {e}")
+        raise
 
 
 # ======================================================================
@@ -94,69 +98,73 @@ def create_game(ui: UI, player_unit_names: list[str]) -> GameAPI:
 def main():
     """Main entry function. Handles initialization, menus, and game loop."""
     # --- Initialize pygame systems ---
-    pygame.init()
-    pygame.font.init()
-
-    # --- Set up window icon and caption BEFORE creating the window ---
-    icon_path = get_asset_path("assets/images/game_icon/roman-helmet-32.png")
     try:
-        icon = pygame.image.load(icon_path)
-        pygame.display.set_icon(icon)
+        pygame.init()
+        pygame.font.init()
+
+        # --- Set up window icon and caption BEFORE creating the window ---
+        icon_path = get_asset_path("assets/images/game_icon/roman-helmet-32.png")
+        try:
+            icon = pygame.image.load(icon_path)
+            pygame.display.set_icon(icon)
+        except Exception as e:
+            logger(f"[Warning] Could not load window icon: {e} -> {icon_path}")
+
+        screen = pygame.display.set_mode((SCREEN_W + SIDEBAR_WIDTH, SCREEN_H))
+        pygame.display.set_caption("Commanders' Arena")
+
+        # --- Prepare default font ---
+        font = pygame.font.Font(None, 28)
+
+        # --- Renderer and UI setup ---
+        game_renderer = Renderer(cell_size=CELL_SIZE)
+        ui = UI(cell_size=CELL_SIZE, renderer=game_renderer)
+
+        # --- Frame rate limiter ---
+        clock = pygame.time.Clock()
+
+        # ==================================================================
+        # 🏁 Main Game Loop
+        # ==================================================================
+        running = True
+        while running:
+            # --- Display the main menu ---
+            play_menu_music()
+            choice = ui.start_menu(screen, font)
+            if choice == "quit":
+                break
+
+            if choice == "start_game":
+                # --- Draft / Army Selection Phase ---
+                selected_units = ui.draft_menu(screen)
+                if not selected_units:
+                    continue  # Return to main menu if canceled
+
+                # --- Create a new log file for the session ---
+                create_log_file()
+
+                # --- Start a new match with selected units ---
+                game_api = create_game(ui, selected_units)
+                engine = GameEngine(game_api, screen, font, clock)
+
+                # --- Run the main battle loop ---
+                result = engine.run()
+
+                # --- Handle post-game result ---
+                if result is False:  # Quit mid-game
+                    running = False
+                elif result == "menu":
+                    continue
+                else:
+                    # Normal match completion → return to menu
+                    continue
+
     except Exception as e:
-        print(f"[Warning] Could not load window icon: {e} -> {icon_path}")
-
-    screen = pygame.display.set_mode((SCREEN_W + SIDEBAR_WIDTH, SCREEN_H))
-    pygame.display.set_caption("Commanders' Arena")
-
-    # --- Prepare default font ---
-    font = pygame.font.Font(None, 28)
-
-    # --- Renderer and UI setup ---
-    game_renderer = Renderer(cell_size=CELL_SIZE)
-    ui = UI(cell_size=CELL_SIZE, renderer=game_renderer)
-
-    # --- Frame rate limiter ---
-    clock = pygame.time.Clock()
-
-    # ==================================================================
-    # 🏁 Main Game Loop
-    # ==================================================================
-    running = True
-    while running:
-        # --- Display the main menu ---
-        play_menu_music()
-        choice = ui.start_menu(screen, font)
-        if choice == "quit":
-            break
-
-        if choice == "start_game":
-            # --- Draft / Army Selection Phase ---
-            selected_units = ui.draft_menu(screen)
-            if not selected_units:
-                continue  # Return to main menu if canceled
-
-            # --- Create a new log file for the session ---
-            create_log_file()
-
-            # --- Start a new match with selected units ---
-            game_api = create_game(ui, selected_units)
-            engine = GameEngine(game_api, screen, font, clock)
-
-            # --- Run the main battle loop ---
-            result = engine.run()
-
-            # --- Handle post-game result ---
-            if result is False:  # Quit mid-game
-                running = False
-            elif result == "menu":
-                continue
-            else:
-                # Normal match completion → return to menu
-                continue
-
-    # --- Cleanup ---
-    pygame.quit()
-    logger("Exited game loop")
+        logger(f"Critical error in main: {e}")
+    finally:
+        # --- Cleanup ---
+        pygame.quit()
+        logger("Exited game loop")
 
 
 # ======================================================================
