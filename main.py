@@ -76,13 +76,13 @@ def create_game(ui: UI, player_unit_names: list[str]) -> GameAPI:
 
         # --- Add PLAYER units based on selection ---
 
-        game_api.game_board.add_units(player_unit_names, team=TeamType.PLAYER)
+        game_api.add_units(player_unit_names, team=TeamType.PLAYER)
 
         # --- AI units (basic mirror for now) ---
 
         ai_draft_names: list[str] = get_ai_draft_units(funds=100)
 
-        game_api.game_board.add_units(ai_draft_names, team=TeamType.AI)
+        game_api.add_units(ai_draft_names, team=TeamType.AI)
 
         return game_api
     except Exception as e:
