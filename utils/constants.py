@@ -11,11 +11,16 @@ class Color(Enum):
     DARK_GRAY = (60, 60, 60)
 
     RED = (200, 50, 50)
+    DARK_RED = (163, 41, 41)
+    DARK_GREEN = (0, 153, 51)
     GREEN = (0, 200, 0)
+    LIGHT_GREEN = (51, 204, 51)
     YELLOW = (255, 230, 80)
     BLUE = (0, 150, 255)
     CYAN = (0, 153, 153)
-
+    DESERT = (255, 204, 102)
+    ORANGE_DESERT = (255, 173, 51)
+    DARK_DESERT = (230, 138, 0)
     # Optional: highlights, terrain tints
     GRASS = (153, 204, 140)
     HILL = (195, 205, 170)
@@ -73,6 +78,7 @@ UNIT_STATS = {
         "attack_power": 50,
         "attack_range": 1,
         "move_range": 2.0,
+        "cost": 20,
     },
     "Archer": {
         "health": 70,
@@ -80,6 +86,7 @@ UNIT_STATS = {
         "attack_power": 45,
         "attack_range": 3,
         "move_range": 3.0,
+        "cost": 25,
     },
     "Horseman": {
         "health": 100,
@@ -87,24 +94,31 @@ UNIT_STATS = {
         "attack_power": 50,
         "attack_range": 1,
         "move_range": 4.0,
+        "cost": 30,
     },
     "Spearman": {
-        "health": 110,
+        "health": 115,
         "armor": 35,
         "attack_power": 50,
         "attack_range": 1,
         "move_range": 2.0,
+        "cost": 20,
     },
 }
 
+# Battle setup
+
+STARTING_FUNDS = 100  # starting funds per player
 
 # Effectiveness multipliers: attacker -> defender
 EFFECTIVENESS = {
     "Archer": {"Swordsman": 1.0, "Horseman": 0.8, "Spearman": 1.0},
     "Swordsman": {"Archer": 1.0, "Horseman": 1.0, "Spearman": 1.0},
     "Horseman": {"Archer": 1.3, "Swordsman": 1.1, "Spearman": 0.8},
-    "Spearman": {"Archer": 1.0, "Swordsman": 0.8, "Horseman": 1.3},
+    "Spearman": {"Archer": 1.0, "Swordsman": 0.9, "Horseman": 1.3},
 }
+
+HEALTH_INFLUENCE = 0.9
 
 DAMAGE_DISPLAY_TIME = 30  # frames to show the number
 

@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from api.api import GameAPI
     from frontend.renderer import Renderer
 
-from utils.constants import SIDEBAR_WIDTH, TeamType
+from utils.constants import FPS, SIDEBAR_WIDTH, STARTING_FUNDS, UNIT_STATS, TeamType
 from utils.helpers import pixel_to_grid
 
 
@@ -38,6 +38,7 @@ class UI:
     # ------------------------------
     # Start Menu handling
     # ------------------------------
+
     def start_menu(self, screen: pygame.Surface, font: pygame.font.Font) -> str:
         """Display the start menu and handle user input."""
 
@@ -76,7 +77,52 @@ class UI:
             # --- Draw the menu ---
             self.renderer.draw_start_menu(screen, selected_index, options)
             pygame.display.flip()
-            clock.tick(60)
+            clock.tick(FPS)
+
+    # ------------------------------
+    # Draft / Army Selection Menu
+    # ------------------------------
+
+    def draft_menu(self, screen):
+        """Display the pre-battle draft/army selection phase."""
+        clock = pygame.time.Clock()
+        selected_units = []
+        funds_left = STARTING_FUNDS
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return None
+
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    pos = event.pos
+                    clicked = self.renderer.handle_click(pos)
+
+                    # Add unit
+                    if clicked and clicked.startswith("add_"):
+                        unit_name = clicked.replace("add_", "")
+                        cost = UNIT_STATS[unit_name]["cost"]
+                        if funds_left >= cost:
+                            selected_units.append(unit_name)
+                            funds_left -= cost
+
+                    # Remove unit
+                    elif clicked and clicked.startswith("rem_"):
+                        unit_name = clicked.replace("rem_", "")
+                        if unit_name in selected_units:
+                            selected_units.remove(unit_name)
+                            funds_left += UNIT_STATS[unit_name]["cost"]
+
+                    # Start battle
+                    elif clicked == "start_battle" and selected_units:
+                        return selected_units
+
+            # Draw draft screen
+            self.renderer.draw_draft_screen(
+                screen, UNIT_STATS, selected_units, funds_left
+            )
+            pygame.display.flip()
+            clock.tick(FPS)
 
     # ------------------------------
     # Game Input Handling
@@ -111,7 +157,7 @@ class UI:
 
             # --- Sidebar buttons ---
             if px < SIDEBAR_WIDTH and self.renderer:
-                clicked = self.renderer.handle_sidebar_click((px, py))
+                clicked = self.renderer.handle_click((px, py))
                 if clicked == "End Turn":
                     return {"type": "end_turn"}
                 elif clicked == "Menu":

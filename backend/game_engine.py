@@ -44,9 +44,6 @@ class GameEngine:
         self.selected_id: int | None = None
         self.current_team: TeamType = TeamType.PLAYER
 
-        # Notify start of player's turn
-        add_message("Player's turn!")
-
     # ------------------------------
     # Player Input Handling
     # ------------------------------
@@ -120,7 +117,12 @@ class GameEngine:
 
         # Clear the screen and redraw the board
         self.screen.fill((240, 240, 240))
-        self.game_api.draw(self.screen, snapshot, self.selected_id)
+        self.game_api.draw(
+            self.screen,
+            snapshot,
+            self.selected_id,
+            is_player_turn=(self.current_team == TeamType.PLAYER),
+        )
 
         # Highlight movement and attack ranges for the selected unit
         if self.selected_id is not None:
@@ -183,14 +185,12 @@ class GameEngine:
                 # Transition to AI turn
                 self.current_team = TeamType.AI
                 self.game_api.turn_begin_reset(TeamType.AI)
-                add_message("AI's turn!")
 
         # --- AI's turn ---
         elif self.current_team == TeamType.AI:
             self.game_api.run_ai_turn(TeamType.AI)
             self.game_api.turn_begin_reset(TeamType.PLAYER)
             self.current_team = TeamType.PLAYER
-            add_message("Player's turn!")
 
     # ------------------------------
     # Main Game Loop

@@ -1,7 +1,6 @@
-# frontend/renderer.py
-
 import pygame
 
+from utils.button_manager import ButtonManager, ButtonType
 from utils.constants import (
     DAMAGE_DISPLAY_TIME,
     GRID_COLOR,
@@ -17,76 +16,150 @@ from utils.constants import (
     TileHighlightType,
     UnitType,
 )
-from utils.fonts import FontManager
-from utils.helpers import load_unit_images
+from utils.font_manager import FontManager
+from utils.image_helpers import load_single_image, load_unit_images
 
 
 class Renderer:
     """
     Handles all rendering and drawing operations for the game interface.
-
-    This includes:
-        - Board rendering (tiles, grid, highlights)
-        - Unit rendering (sprites, HP bars, damage text)
-        - Sidebar and UI button rendering
-
-    The class separates drawing logic from game logic for cleaner architecture.
     """
 
     def __init__(self, cell_size: int):
-        """
-        Initialize the renderer with grid and font data.
-
-        Args:
-            cell_size (int): Pixel size for each map cell.
-            font (pygame.font.Font): Font used for UI text rendering.
-        """
         self.cell_size = cell_size
         self.unit_images = load_unit_images(cell_size=cell_size)
-        self.sidebar_buttons = {}  # Mapping of {button_label: pygame.Rect}
-        self.fonts = FontManager()
+        self.font_manager = FontManager()
+        self.buttons = ButtonManager(self.font_manager)  # centralized button manager
+        self.coin_icon = load_single_image("assets/images/other/denarius.png", (28, 28))
 
     # ------------------------------
     # Start Menu
     # ------------------------------
+
     def draw_start_menu(
         self, screen: pygame.Surface, selected_index: int, options: list[str]
     ) -> None:
         """Render the main menu screen."""
         screen.fill(Color.BLACK.value)
         sw, sh = screen.get_size()
+        mouse_pos = pygame.mouse.get_pos()
 
-        # --- Draw title ---
-        font, color = self.fonts.get("title")
+        # --- Title ---
+        font, color = self.font_manager.get("title")
         title_surf = font.render("Commanders' Arena", True, color=color)
         screen.blit(title_surf, (sw // 2 - title_surf.get_width() // 2, sh // 4 - 60))
 
-        # --- Draw buttons ---
-        mouse_x, mouse_y = pygame.mouse.get_pos()
+        # --- Buttons ---
+        self.buttons.buttons.clear()
+        btn_width, btn_height = 220, 50
+
         for i, option in enumerate(options):
-            btn_width, btn_height = 220, 50
             btn_x = sw // 2 - btn_width // 2
             btn_y = sh // 2 - 40 + i * 80
-            btn_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
+            rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
+            btn_type = ButtonType.MENU
+            self.buttons.register(option, rect, btn_type)
+            self.buttons.draw_button(screen, option, option, mouse_pos)
 
-            # Hover and selection
-            if btn_rect.collidepoint(mouse_x, mouse_y):
-                color = (255, 230, 80)
-            elif i == selected_index:
-                color = (255, 255, 150)
-            else:
-                color = (200, 200, 200)
+    # ------------------------------
+    # Draft Menu
+    # ------------------------------
 
-            pygame.draw.rect(screen, color, btn_rect, border_radius=12)
-            font, color = self.fonts.get("menu")
-            text_surf = font.render(option, True, color=color)
-            screen.blit(
-                text_surf,
-                (
-                    btn_x + btn_width // 2 - text_surf.get_width() // 2,
-                    btn_y + btn_height // 2 - text_surf.get_height() // 2,
-                ),
+    def draw_draft_screen(
+        self, screen, available_units, selected_units, funds_left
+    ) -> None:
+        """Draw pre-battle army selection screen."""
+        screen.fill((25, 25, 25))
+        sw, sh = screen.get_size()
+        font_title, color_title = self.font_manager.get("title")
+        font_text, color_text = self.font_manager.get("sidebar")
+        mouse_pos = pygame.mouse.get_pos()
+        self.buttons.buttons.clear()
+
+        # --- Title ---
+        title = font_title.render("Build Your Army", True, color_title)
+        screen.blit(title, (sw // 2 - title.get_width() // 2, 40))
+
+        # --- Funds display ---
+        funds_text = font_text.render(
+            f"Funds left: {funds_left}", True, (255, 255, 150)
+        )
+
+        # Calculate centered position
+        text_x = sw // 2 - funds_text.get_width() // 2
+        text_y = 100
+        screen.blit(funds_text, (text_x, text_y))
+
+        # Add coin icon next to the text (right side or left side)
+        if self.coin_icon:
+            icon_y = (
+                text_y + (funds_text.get_height() - self.coin_icon.get_height()) // 2
             )
+            icon_x = text_x + funds_text.get_width() + 10  # 10px gap to the right
+            screen.blit(self.coin_icon, (icon_x, icon_y))
+
+        # --- Column headers ---
+        headers = ["Unit", "Cost", "HP", "Armor", "ATK", "Range", "Mov"]
+        header_x_positions = [150, 360, 430, 490, 550, 610, 670]
+        for hx, header in zip(header_x_positions, headers):
+            hsurf = font_text.render(header, True, (200, 200, 200))
+            screen.blit(hsurf, (hx, 150))
+
+        # --- Layout ---
+        start_y = 180
+        row_height = 55
+        btn_w, btn_h = 60, 30
+
+        # --- Units ---
+        for i, (name, data) in enumerate(available_units.items()):
+            y = start_y + i * row_height
+
+            # Background stripes
+            if i % 2 == 0:
+                pygame.draw.rect(
+                    screen, (35, 35, 35), (130, y - 8, sw - 280, row_height)
+                )
+
+            # Unit name
+            name_surf = font_text.render(name, True, Color.LIGHT_GRAY.value)
+            screen.blit(name_surf, (150, y))
+
+            # Stats
+            stats = [
+                data.get("cost", 0),
+                data.get("health", 0),
+                data.get("armor", 0),
+                data.get("attack_power", 0),
+                data.get("attack_range", 0),
+                data.get("move_range", 0),
+            ]
+            for val, x in zip(stats, header_x_positions[1:]):
+                surf = font_text.render(str(val), True, Color.LIGHT_GRAY.value)
+                screen.blit(surf, (x, y))
+
+            # Buttons
+            add_rect = pygame.Rect(sw - 190, y, btn_w, btn_h)
+            rem_rect = pygame.Rect(sw - 120, y, btn_w, btn_h)
+
+            self.buttons.register(f"add_{name}", add_rect, ButtonType.ADD)
+            self.buttons.register(f"rem_{name}", rem_rect, ButtonType.REMOVE)
+            self.buttons.draw_button(screen, f"add_{name}", "+", mouse_pos)
+            self.buttons.draw_button(screen, f"rem_{name}", "-", mouse_pos)
+
+        # --- Player’s army ---
+        screen.blit(
+            font_text.render("Your Army:", True, Color.WHITE.value), (150, sh - 180)
+        )
+        y = sh - 150
+        for unit in selected_units:
+            unit_text = font_text.render(unit, True, (200, 200, 200))
+            screen.blit(unit_text, (180, y))
+            y += 28
+
+        # --- Start button ---
+        start_rect = pygame.Rect(sw // 2 - 100, sh - 70, 200, 50)
+        self.buttons.register("start_battle", start_rect, ButtonType.START_GAME)
+        self.buttons.draw_button(screen, "start_battle", "Start Battle", mouse_pos)
 
     # ------------------------------
     # Board Rendering
@@ -123,7 +196,7 @@ class Renderer:
             text (str): Message to render.
         """
         sw, sh = screen.get_size()
-        font, color = self.fonts.get("title")
+        font, color = self.font_manager.get("title")
         surf = font.render(text, True, color=color)
         screen.blit(
             surf, (sw // 2 - surf.get_width() // 2, sh // 2 - surf.get_height() // 2)
@@ -167,14 +240,11 @@ class Renderer:
     def draw_units(self, screen, board_snapshot, selected_id=None):
         """
         Draw all units, their health bars, and any floating damage text.
-
-        Args:
-            screen (pygame.Surface): Display surface.
-            board_snapshot (dict): Contains 'units' and their current stats.
-            selected_id (Optional[int]): Currently selected unit ID.
+        Ensures correct draw order: units first, then UI overlays.
         """
         units = board_snapshot["units"]
 
+        # --- 1️⃣ Draw all unit sprites first ---
         for u in units:
             unit_type = UnitType[u["name"].upper()]
             team = u["team"] if isinstance(u["team"], TeamType) else TeamType(u["team"])
@@ -186,7 +256,6 @@ class Renderer:
                 self.cell_size,
             )
 
-            # Draw sprite or fallback rectangle
             img = self.unit_images.get(unit_type, {}).get(team)
             if img:
                 screen.blit(img, rect.topleft)
@@ -198,23 +267,23 @@ class Renderer:
                     border_radius=8,
                 )
 
-            # Draw health bar and damage text
+            # Cache screen rect for later overlay draws
+            u["_rect"] = rect
+
+        # --- 2️⃣ Draw overlays (HP bar + damage) separately ---
+        for u in units:
+            rect = u["_rect"]
             if "max_hp" in u:
                 self._draw_health_bar(screen, u, rect)
             self._draw_damage_number(screen, u, rect)
 
-        # Highlight the currently selected unit
+        # --- 3️⃣ Highlight selected unit on top of everything ---
         if selected_id is not None:
             selected = next((u for u in units if u["id"] == selected_id), None)
             if selected:
-                highlight = pygame.Rect(
-                    selected["x"] * self.cell_size + SIDEBAR_WIDTH,
-                    selected["y"] * self.cell_size,
-                    self.cell_size,
-                    self.cell_size,
-                )
+                rect = selected["_rect"]
                 pygame.draw.rect(
-                    screen, (255, 230, 80), highlight, width=3, border_radius=8
+                    screen, Color.YELLOW.value, rect, width=3, border_radius=8
                 )
 
     def _draw_health_bar(self, screen, unit: dict, rect: pygame.Rect):
@@ -283,129 +352,85 @@ class Renderer:
     # Sidebar Rendering
     # ------------------------------
 
-    def draw_sidebar(self, screen, board_snapshot, selected_id):
-        """
-        Render the sidebar panel with unit info and action buttons.
-
-        Args:
-            screen (pygame.Surface): Display surface.
-            board_snapshot (dict): Board and unit state data.
-            selected_id (Optional[int]): Currently selected unit ID.
-        """
+    def draw_sidebar(self, screen, board_snapshot, selected_id, is_player_turn=False):
+        """Render sidebar with info + menu buttons."""
         sidebar_rect = pygame.Rect(0, 0, SIDEBAR_WIDTH, SCREEN_H)
-        pygame.draw.rect(screen, (230, 230, 230), sidebar_rect)
+        pygame.draw.rect(screen, Color.DESERT.value, sidebar_rect)
         pygame.draw.line(
-            screen, (100, 100, 100), (SIDEBAR_WIDTH, 0), (SIDEBAR_WIDTH, SCREEN_H), 2
+            screen, Color.BLACK.value, (SIDEBAR_WIDTH, 0), (SIDEBAR_WIDTH, SCREEN_H), 2
         )
 
-        y = 20  # Vertical cursor for text placement
+        y = 20
+        font, color = self.font_manager.get("sidebar")
+        turn_text = "It's your turn!" if is_player_turn else "Enemy turn..."
+        turn_color = (0, 120, 0) if is_player_turn else (150, 0, 0)
+        turn_surf = font.render(turn_text, True, turn_color)
+        screen.blit(turn_surf, (20, y))
+        y += 40
 
-        # --- Selected unit info ---
+        # --- Unit info ---
         if selected_id is not None:
             selected = next(
                 (u for u in board_snapshot["units"] if u["id"] == selected_id), None
             )
             if selected:
-                # Unit name
-                font, color = self.fonts.get("sidebar")
-                name_surf = font.render(
-                    f"{selected['name'].capitalize()}", True, color=color
-                )
+                name_surf = font.render(selected["name"].capitalize(), True, color)
                 screen.blit(name_surf, (20, y))
                 y += 30
-
-                # Unit stats
                 stats = [
                     ("HP", selected["health"]),
-                    ("Move points", selected["move_points"]),
-                    ("Attack power", selected["attack_power"]),
-                    ("Attack range", selected["attack_range"]),
+                    ("Move", selected["move_points"]),
+                    ("ATK", selected["attack_power"]),
+                    ("Range", selected["attack_range"]),
                 ]
-                for label, value in stats:
-                    font, color = self.fonts.get("sidebar")
-                    surf = font.render(f"{label}: {value}", True, color=color)
-                    screen.blit(surf, (20, y))
+                for label, val in stats:
+                    s = font.render(f"{label}: {val}", True, color)
+                    screen.blit(s, (20, y))
                     y += 30
-
-                # Terrain bonuses
                 self._draw_terrain_bonus(board_snapshot, selected, screen, y)
 
-        # --- Bottom menu buttons ---
+        # --- Menu buttons ---
         menu_items = ["End Turn", "Menu", "Quit", "Help"]
         btn_width, btn_height = SIDEBAR_WIDTH - 40, 40
         menu_y = SCREEN_H - (len(menu_items) * (btn_height + 10)) - 20
+        mouse_pos = pygame.mouse.get_pos()
+        self.buttons.buttons.clear()
 
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        self.sidebar_buttons.clear()
-
-        # Draw each button
-        for i, text in enumerate(menu_items):
-            btn_x = 20
-            btn_y = menu_y + i * (btn_height + 10)
-            rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
-            self.sidebar_buttons[text] = rect
-
-            # Hover effect
-            color = (
-                (255, 230, 80)
-                if rect.collidepoint(mouse_x, mouse_y)
-                else (200, 200, 200)
+        for i, label in enumerate(menu_items):
+            rect = pygame.Rect(
+                20, menu_y + i * (btn_height + 10), btn_width, btn_height
             )
-            pygame.draw.rect(screen, color, rect, border_radius=8)
-            pygame.draw.rect(screen, (100, 100, 100), rect, width=2, border_radius=8)
+            btn_type = ButtonType.SIDEBAR
+            self.buttons.register(label, rect, btn_type)
+            self.buttons.draw_button(screen, label, label, mouse_pos)
 
-            font, color = self.fonts.get("sidebar")
-            label = font.render(text, True, color=color)
-            screen.blit(
-                label,
-                (
-                    rect.centerx - label.get_width() // 2,
-                    rect.centery - label.get_height() // 2,
-                ),
-            )
+    # ------------------------------
+    # Terrain Bonus (unchanged)
+    # ------------------------------
 
     def _draw_terrain_bonus(self, board_snapshot, selected, screen, y):
-        """
-        Draw terrain bonus info for the selected unit.
-
-        Args:
-            board_snapshot (dict): Contains tile data.
-            selected (dict): Selected unit data.
-            screen (pygame.Surface): Display surface.
-            y (int): Vertical position for rendering text.
-        """
         tiles = board_snapshot["tiles"]
         ux, uy = selected["x"], selected["y"]
         if 0 <= uy < len(tiles) and 0 <= ux < len(tiles[0]):
             tile = tiles[uy][ux]
             def_bonus = TERRAIN_DEFENSE_BONUS.get(tile, 0)
             atk_bonus = TERRAIN_ATTACK_BONUS.get(tile, 0)
-
             tile_name = tile.name.capitalize() if hasattr(tile, "name") else str(tile)
-            bonus_parts = []
-            if def_bonus != 0:
-                bonus_parts.append(f"{int(def_bonus * 100)}% DEF")
-            if atk_bonus != 0:
-                bonus_parts.append(f"{int(atk_bonus * 100)}% ATK")
-            if not bonus_parts:
-                bonus_parts.append("No bonus")
+            parts = []
+            if def_bonus:
+                parts.append(f"{int(def_bonus * 100)}% DEF")
+            if atk_bonus:
+                parts.append(f"{int(atk_bonus * 100)}% ATK")
+            if not parts:
+                parts.append("No bonus")
+            bonus_text = f"{tile_name}: {', '.join(parts)}"
+            font, color = self.font_manager.get("sidebar")
+            screen.blit(font.render(bonus_text, True, color), (20, y))
 
-            bonus_text = f"{tile_name}: " + ", ".join(bonus_parts)
-            font, color = self.fonts.get("sidebar")
-            terr_surf = font.render(bonus_text, True, color=color)
-            screen.blit(terr_surf, (20, y))
+    # ------------------------------
+    # Click Handling
+    # ------------------------------
 
-    def handle_sidebar_click(self, pos):
-        """
-        Check if a sidebar button was clicked.
-
-        Args:
-            pos (tuple[int, int]): Mouse click position.
-
-        Returns:
-            str | None: Button label if clicked, else None.
-        """
-        for label, rect in self.sidebar_buttons.items():
-            if rect.collidepoint(pos):
-                return label
-        return None
+    def handle_click(self, pos):
+        """Return the name of the clicked button if any."""
+        return self.buttons.was_clicked(pos)
