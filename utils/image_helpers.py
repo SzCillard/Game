@@ -1,6 +1,5 @@
 # utils/image_helpers.py
 
-import os
 from typing import Optional, Tuple
 
 import pygame
@@ -20,21 +19,24 @@ def load_unit_images(cell_size: int):
             rel = f"{base_path}/{unit.name.lower()}/{unit.name.lower()}_{team_name}.png"
             path = get_asset_path(rel)
 
-            if os.path.exists(path):
-                img = pygame.image.load(path).convert_alpha()
-                img = pygame.transform.scale(img, (cell_size, cell_size))
-                images[unit][team] = img
-            else:
-                print(f"⚠️ Missing image: {path}")
-                images[unit][team] = None
+            try:
+                img = load_single_image(path, (cell_size, cell_size))
+            except Exception as e:
+                print(f"⚠️ Missing image: {path} — {e}")
+                img = None
+
+            images[unit][team] = img
+
     return images
 
 
 def load_single_image(path: str, size: Tuple[int, int]) -> Optional[pygame.Surface]:
     full = get_asset_path(path)
-    if os.path.exists(full):
+
+    try:
         img = pygame.image.load(full).convert_alpha()
         img = pygame.transform.scale(img, size)
         return img
-    print(f"⚠️ Missing image: {full}")
-    return None
+    except Exception as e:
+        print(f"⚠️ Missing image: {full} — {e}")
+        return None
