@@ -63,6 +63,12 @@ class GameAPI:
         return self.game_logic.get_winner()
 
     # --- Action requests (frontend calls these) ---
+
+    # TODO: refactor these for universal api apply_action method
+
+    def apply_action(self, outputs, logic, team):
+        pass
+
     def request_move(self, unit, x, y):
         """Frontend requests a unit move. Returns success boolean."""
 
