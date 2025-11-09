@@ -1,7 +1,11 @@
-# ai/neat/neat_agent.py
-from typing import Any
+# ai/agents/neat_agent.py
+
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from api.api import GameAPI
 
 from ai.neat.neat_network import NeatNetwork
 from utils.constants import TeamType
@@ -14,7 +18,7 @@ class NeatAgent:
     def setup_brain(self, brain: NeatNetwork):
         self.brain = brain
 
-    def encode_state(self, game_state: dict[str, Any], team) -> np.ndarray:
+    def _encode_state(self, game_state: dict[str, Any], team) -> np.ndarray:
         """Extract numerical features for the neural network."""
 
         ally_units = [u for u in game_state["units"] if u["team"] == TeamType.PLAYER]
@@ -47,51 +51,155 @@ class NeatAgent:
             ]
         )
 
-    def eval_state(self, net: NeatNetwork, game_state: dict[str, Any], team) -> float:
+    def _eval_state(self, net: NeatNetwork, game_state: dict[str, Any], team) -> float:
         """Evaluate the game state"""
 
-        encoded_state = self.encode_state(game_state, team)
+        encoded_state = self._encode_state(game_state, team)
         prediction = net.predict(encoded_state)
         return prediction[0]
 
-    """
-    def select_greedy_action(self, state, brain, team):
-        legal_actions = self.game_api.get_legal_actions(state, team)
-        best_move = None
+    def _decode_actions(self, action_idx):
+        """Convert output index back into a valid action."""
+        actions = ["move_up", "move_down", "attack", "wait"]
+        return {"type": actions[action_idx]}
+
+    def _get_set_of_actions(
+        self, game_api: "GameAPI", team: TeamType, max_sets: int = 10
+    ) -> list[list[dict[str, Any]]]:
+        """
+        Generate up to `max_sets` complete action sequences (sets of actions)
+        for the specified team by recursively exploring all legal actions
+        from the current game state using depth-first search.
+
+        Each resulting sequence represents a full turn of valid actions
+        that can be executed by the given team until no further legal actions
+        are available (i.e., an end-of-turn state is reached).
+
+        The search terminates early once `max_sets` sequences have been found.
+
+        Args:
+            game_api (Any):
+                The game API interface providing methods such as
+                `get_board_snapshot()`, `get_legal_actions(state, team)`,
+                `clone()`, and `apply_action(action)`.
+            team (Any):
+                The team identifier (e.g., `TeamType.PLAYER` or `TeamType.AI`)
+                for which to generate possible action sequences.
+            max_sets (int, optional):
+                The maximum number of complete action sequences to generate.
+                Defaults to 10.
+
+        Returns:
+            list[list[dict[str, Any]]]:
+                A list of action sets, where each action set is a list of
+                action dictionaries representing one full sequence of
+                valid actions for the given team.
+        """
+        result_sets = []
+
+        def dfs(current_actions: list[dict[str, Any]], api_clone: "GameAPI") -> None:
+            """
+            Recursive depth-first search helper for exploring all possible
+            sequences of legal actions from a given game state.
+
+            This function builds action sequences by repeatedly:
+            1. Querying legal actions from the current cloned game state.
+            2. Applying each possible action on a deep clone of the state.
+            3. Recursing until no further legal actions remain (i.e., end of turn).
+
+            Once a leaf node (no legal actions) is reached, the full sequence
+            of actions leading to that state is added to the global result set.
+
+            Args:
+                current_actions (list[dict[str, Any]]):
+                    The list of actions taken so far in the current sequence.
+                api_clone (Any):
+                    A cloned instance of the game API representing the current
+                    simulated game state.
+            """
+            # Stop if we've collected enough sets
+            if len(result_sets) >= max_sets:
+                return
+
+            # Get all legal actions for this team
+            legal_actions = api_clone.get_legal_actions(
+                api_clone.get_board_snapshot(), team
+            )
+
+            # If there are no actions left (leaf)
+            if not legal_actions or api_clone.check_turn_end(team):
+                result_sets.append(current_actions)
+                return
+
+            # For each action, simulate and recurse
+            for action in legal_actions:
+                if len(result_sets) >= max_sets:
+                    break  # width limit reached
+
+                # Clone the state
+                next_clone = api_clone.clone()
+
+                # Try to apply the action
+                success = next_clone.apply_action(action)
+                if not success:
+                    continue
+
+                # Continue DFS deeper
+                dfs(current_actions + [action], next_clone)
+
+        # Start exploration from the initial game state
+        dfs([], game_api)
+
+        return result_sets
+
+    def _simulate_actions(
+        self, game_api: "GameAPI", game_state, actions: list[dict[str, Any]]
+    ):
+        api_clone = game_api.clone()
+        for action in actions:
+            api_clone.apply_action(action)
+        return api_clone.get_board_snapshot()
+
+    def _get_next_actions(
+        self, game_api: "GameAPI", net: NeatNetwork, team
+    ) -> list[dict]:
+        all_action_sets = self._get_set_of_actions(game_api, team)
         best_score = -1e9
+        best_set = []
 
-        for move in legal_actions:
-            new_state = self.game_api.simulate_action(state, move)
-            score = brain.predict(self.encode_state(new_state, team))[0]
-
+        for actions in all_action_sets:
+            new_state = self._simulate_actions(
+                game_api, game_api.get_board_snapshot(), actions
+            )
+            score = self._eval_state(net, new_state, team)
             if score > best_score:
                 best_score = score
-                best_move = move
+                best_set = actions
 
-        return best_move
+        return best_set
+
+    def execute_next_actions(self, game_api: "GameAPI", net: NeatNetwork, team):
+        actions = self._get_next_actions(game_api, net, team)
+        for action in actions:
+            game_api.apply_action(action)
+
     """
+    def choose_actions_greedily(self, game_api, net, team):
+        state = game_api.get_board_snapshot()
+        legal_actions = game_api.get_legal_actions(state, team)
+        best_action = None
+        best_score = -float("inf")
 
-    def get_next_actions(
-        self, game_api, net: NeatNetwork, legal_actions, game_state, team
-    ):
-        # If no legal moves, do nothing
-        if not legal_actions:
-            return None
+        for action in legal_actions:
+            clone = game_api.clone()
+            clone.apply_action(action)
 
-        best_move = None
-        best_score = -1e9
-
-        for actions in legal_actions:
-            new_state = game_api.simulate_action(game_state, actions)
+            new_state = clone.get_board_snapshot()
             score = self.eval_state(net, new_state, team)
 
             if score > best_score:
                 best_score = score
-                best_move = actions
+                best_action = action
 
-        return best_move
-
-    def decode_actions(self, action_idx):
-        """Convert output index back into a valid action."""
-        actions = ["move_up", "move_down", "attack", "wait"]
-        return {"type": actions[action_idx]}
+        return [best_action] if best_action else []
+    """

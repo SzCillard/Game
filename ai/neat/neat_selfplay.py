@@ -5,7 +5,6 @@ from ai.draft_helper import get_ai_draft_units
 from ai.neat.neat_network import NeatNetwork
 from api.api import GameAPI
 from backend.board import GameState, create_random_map
-from backend.logic import GameLogic
 from utils.constants import TeamType
 
 
@@ -28,13 +27,12 @@ class SelfPlaySimulator:
         net_a = NeatNetwork.from_genome(genome_a, self.config)
         net_b = NeatNetwork.from_genome(genome_b, self.config)
         # Minimal board
-        gs = GameState(
+        game_board = GameState(
             width=8,
             height=8,
             cell_size=64,
             tile_map=create_random_map(8, 8),
         )
-        logic = GameLogic(gs)
 
         # TODO: refactor game to enable two AI agents playing against each other
         # Add a few test units per team (currently only for one team)
@@ -46,22 +44,20 @@ class SelfPlaySimulator:
         max_turns = 30
         for _ in range(max_turns):
             for team, net in [(TeamType.PLAYER, net_a), (TeamType.AI, net_b)]:
-                game_state = self.game_api.get_board_snapshot()
-                legal_moves = self.game_api.get_legal_actions(game_state, team)
+                # game_state = self.game_api.get_board_snapshot()
 
-                action = self.agent.get_next_actions(
-                    self.game_api, net, game_state, legal_moves, team
-                )
-                self.game_api.apply_action(action, logic, team)
+                # legal_moves = self.game_api.get_legal_actions(game_state, team)
+
+                self.agent.execute_next_actions(self.game_api, net, team)
 
                 if self.game_api.is_game_over():
-                    return self.compute_fitness(gs)
+                    return self.compute_fitness(game_board)
 
-        return self.compute_fitness(gs)
+        return self.compute_fitness(game_board)
 
-    def compute_fitness(self, gs):
+    def compute_fitness(self, game_board):
         """Return (player_fitness, ai_fitness)."""
-        player_hp = sum(u.health for u in gs.units if u.team == TeamType.PLAYER)
-        ai_hp = sum(u.health for u in gs.units if u.team == TeamType.AI)
+        player_hp = sum(u.health for u in game_board.units if u.team == TeamType.PLAYER)
+        ai_hp = sum(u.health for u in game_board.units if u.team == TeamType.AI)
         total_hp = player_hp + ai_hp + 1e-6
         return player_hp / total_hp, ai_hp / total_hp

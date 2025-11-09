@@ -29,7 +29,7 @@ class GameLogic:
         Args:
             game_state (GameState): The shared game state containing tiles and units.
         """
-        self.gs = game_state
+        self.game_board = game_state
 
     def clone(self):
         return copy.deepcopy(self)
@@ -49,8 +49,8 @@ class GameLogic:
             list[tuple[int, int]]: A list of valid coordinates.
         """
         tiles: list[Tuple[int, int]] = []
-        for x in range(self.gs.width):
-            for y in range(self.gs.height):
+        for x in range(self.game_board.width):
+            for y in range(self.game_board.height):
                 if self.can_move(unit, x, y):
                     tiles.append((x, y))
         return tiles
@@ -66,7 +66,7 @@ class GameLogic:
             list[tuple[int, int]]: Positions of enemy units in range.
         """
         tiles: list[Tuple[int, int]] = []
-        for target in self.gs.units:
+        for target in self.game_board.units:
             if self.can_attack(unit, target):
                 tiles.append((target.x, target.y))
         return tiles
@@ -75,7 +75,7 @@ class GameLogic:
         actions = []
         units = [
             u
-            for u in self.gs.units
+            for u in self.game_board.units
             if u.team == team and not u.has_acted and u.move_points > EPSILON
         ]
 
@@ -88,7 +88,7 @@ class GameLogic:
             # Attacks
             attackable_tiles = self.get_attackable_tiles(unit)
             for x, y in attackable_tiles:
-                defender = self.gs.get_unit_at(x, y)
+                defender = self.game_board.get_unit_at(x, y)
                 if defender:
                     actions.append(
                         {"unit_id": unit.id, "type": "attack", "target": defender.id}
@@ -98,52 +98,6 @@ class GameLogic:
             actions.append({"unit_id": unit.id, "type": "wait", "target": None})
 
         return actions
-
-    """
-    def get_legal_actions_from_snapshot(self, game_state_snapshot, team) -> list[dict]:
-        actions = []
-
-        # units structured like snapshot["units"]
-        units = [
-            u for u in game_state_snapshot["units"]
-            if int(u["team"]) == int(team)
-            and not u["has_acted"]
-            and u["move_points"] > 0
-        ]
-
-        for unit in units:
-            ux, uy = unit["x"], unit["y"]
-
-            # MOVES
-            for x in range(game_state_snapshot["width"]):
-                for y in range(game_state_snapshot["height"]):
-                    if self._can_move_snapshot(game_state_snapshot, unit, x, y):
-                        actions.append({
-                            "unit_id": unit["id"],
-                            "type": "move",
-                            "target": (x, y)
-                        })
-
-            # ATTACKS
-            for enemy in game_state_snapshot["units"]:
-                if enemy["team"] != team and enemy["health"] > 0:
-                    if abs(enemy["x"] - ux) + abs(enemy["y"] - uy)
-                    <= max(1, unit["attack_range"]):
-                        actions.append({
-                            "unit_id": unit["id"],
-                            "type": "attack",
-                            "target": enemy["id"]
-                        })
-
-            # WAIT action
-            actions.append({
-                "unit_id": unit["id"],
-                "type": "wait",
-                "target": None
-            })
-
-        return actions
-    """
 
     def can_move(self, unit: Unit, to_x: int, to_y: int) -> bool:
         """
@@ -158,17 +112,17 @@ class GameLogic:
             bool: True if the move is valid, False otherwise.
         """
         # --- Boundary and occupancy checks ---
-        if not self.gs.in_bounds(to_x, to_y):
+        if not self.game_board.in_bounds(to_x, to_y):
             return False
-        if self.gs.get_unit_at(to_x, to_y) is not None:
+        if self.game_board.get_unit_at(to_x, to_y) is not None:
             return False
-        if self.gs.tile(to_x, to_y) == TileType.MOUNTAIN:
+        if self.game_board.tile(to_x, to_y) == TileType.MOUNTAIN:
             return False
         if unit.has_attacked:  # cannot move after attacking
             return False
 
         # --- Pathfinding-based cost check ---
-        cost = compute_min_cost_gs(self.gs, (unit.x, unit.y), (to_x, to_y))
+        cost = compute_min_cost_gs(self.game_board, (unit.x, unit.y), (to_x, to_y))
         return cost <= unit.move_points
 
     def move_unit(self, unit: Unit, to_x: int, to_y: int) -> bool:
@@ -187,7 +141,7 @@ class GameLogic:
             logger(f"{unit.name} cannot move there [{to_x};{to_y}].")
             return False
 
-        cost = compute_min_cost_gs(self.gs, (unit.x, unit.y), (to_x, to_y))
+        cost = compute_min_cost_gs(self.game_board, (unit.x, unit.y), (to_x, to_y))
         if cost > unit.move_points:
             logger(f"{unit.name} does not have enough movement points.")
             return False
@@ -239,7 +193,7 @@ class GameLogic:
             return False
 
         # --- Compute and apply damage ---
-        dmg = calculate_damage(attacker, defender, self.gs)
+        dmg = calculate_damage(attacker, defender, self.game_board)
 
         # Store damage data for UI animation
         defender.last_damage = dmg
@@ -262,8 +216,34 @@ class GameLogic:
         # --- Finalize attack ---
         attacker.has_attacked = True
         attacker.move_points = 0
-        self.gs.remove_dead()
+        self.game_board.remove_dead()
         return True
+
+    def apply_action(self, action: dict):
+        unit = next(
+            (u for u in self.game_board.units if u.id == action["unit_id"]), None
+        )
+        if not unit:
+            return False
+
+        if action["type"] == "move":
+            x, y = action["target"]
+            return self.move_unit(unit, x, y)
+
+        elif action["type"] == "attack":
+            target_id = action["target"]
+            target_unit = next(
+                (u for u in self.game_board.units if u.id == target_id), None
+            )
+            if target_unit:
+                return self.apply_attack(unit, target_unit)
+            return False
+
+        elif action["type"] == "wait":
+            unit.has_acted = True
+            return True
+
+        return False
 
     def update_damage_timers(self) -> None:
         """
@@ -271,7 +251,7 @@ class GameLogic:
 
         Used by renderer to fade out damage numbers over time.
         """
-        for u in self.gs.units:
+        for u in self.game_board.units:
             if hasattr(u, "damage_timer") and u.damage_timer > 0:
                 u.damage_timer = max(0, u.damage_timer - 1)
                 if u.damage_timer == 0:
@@ -288,13 +268,13 @@ class GameLogic:
         Args:
             team (int): The team whose turn begins.
         """
-        for u in self.gs.units:
+        for u in self.game_board.units:
             if u.team == team:
                 u.move_points = u.move_range
                 u.has_attacked = False
                 u.has_acted = False
 
-    def turn_check_end(self, team: int) -> bool:
+    def check_turn_end(self, team: int) -> bool:
         """
         Check if all units on a team have completed their actions.
 
@@ -304,7 +284,7 @@ class GameLogic:
         Returns:
             bool: True if all units have acted, False otherwise.
         """
-        units = [u for u in self.gs.units if u.team == team]
+        units = [u for u in self.game_board.units if u.team == team]
         for u in units:
             if u.move_points <= EPSILON:
                 u.has_acted = True
@@ -321,7 +301,7 @@ class GameLogic:
                 - 0 → Draw
                 - None → Game still ongoing
         """
-        teams = {u.team for u in self.gs.units}
+        teams = {u.team for u in self.game_board.units}
         if 1 in teams and 2 in teams:
             return None
         if 1 not in teams and 2 not in teams:
@@ -335,7 +315,7 @@ class GameLogic:
         Returns:
             bool: True if one or both teams have no units left.
         """
-        teams = {u.team for u in self.gs.units}
+        teams = {u.team for u in self.game_board.units}
         return not (1 in teams and 2 in teams)
 
     # ------------------------------
@@ -352,14 +332,14 @@ class GameLogic:
         """
         ai_units = [
             u
-            for u in self.gs.units
+            for u in self.game_board.units
             if u.team == ai_team and not u.has_acted and u.move_points > EPSILON
         ]
 
         for unit in ai_units:
             while unit.move_points > EPSILON and not unit.has_acted:
                 # Snapshot used for AI decision-making
-                snapshot = self.gs.get_snapshot()
+                snapshot = self.game_board.get_snapshot()
                 action = agent.decide_next_action(snapshot, ai_team)
 
                 # No available action
@@ -376,7 +356,8 @@ class GameLogic:
 
                 elif action["type"] == "attack":
                     defender = next(
-                        (u for u in self.gs.units if u.id == action["target"]), None
+                        (u for u in self.game_board.units if u.id == action["target"]),
+                        None,
                     )
                     if defender:
                         self.apply_attack(unit, defender)

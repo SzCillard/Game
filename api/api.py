@@ -1,4 +1,6 @@
 # api/api.py
+from __future__ import annotations
+
 import copy
 from typing import Optional
 
@@ -33,14 +35,14 @@ class GameAPI:
         )
         self.ai_team = ai_team.value if isinstance(ai_team, TeamType) else ai_team
 
-    def clone(self):
+    def clone(self) -> GameAPI:
         return copy.deepcopy(self)
 
     def turn_begin_reset(self, team):
         self.game_logic.turn_begin_reset(team)
 
-    def turn_check_end(self, team):
-        return self.game_logic.turn_check_end(team)
+    def check_turn_end(self, team):
+        return self.game_logic.check_turn_end(team)
 
     def run_ai_turn(self, team):
         return self.game_logic.run_ai_turn(self.agent, team)
@@ -68,11 +70,6 @@ class GameAPI:
 
     # --- Action requests (frontend calls these) ---
 
-    # TODO: refactor these for universal api apply_action method
-
-    def apply_action(self, outputs, logic, team):
-        pass
-
     def get_legal_actions(self, game_state, team):
         return self.game_logic.get_legal_actions(game_state, team)
 
@@ -91,6 +88,11 @@ class GameAPI:
 
     def get_attackable_tiles(self, unit):
         return self.game_logic.get_attackable_tiles(unit)
+
+    # TODO: refactor these for universal api apply_action method
+
+    def apply_action(self, action):
+        self.game_logic.apply_action(action)
 
     # --- Agent interaction ---
     def get_board_snapshot(self):

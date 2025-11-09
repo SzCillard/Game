@@ -186,7 +186,7 @@ class GameEngine:
         """
         # --- Player's turn ---
         if self.current_team == TeamType.PLAYER:
-            if self.game_api.turn_check_end(TeamType.PLAYER):
+            if self.game_api.check_turn_end(TeamType.PLAYER):
                 # Transition to AI turn
                 self.current_team = TeamType.AI
                 self.game_api.turn_begin_reset(TeamType.AI)
