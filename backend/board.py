@@ -10,6 +10,7 @@ Each GameState contains:
 - Utilities for querying and mutating the map state
 """
 
+import copy
 import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -46,6 +47,10 @@ class GameState:
         "Horseman": Horseman,
         "Spearman": Spearman,
     }
+
+    def clone(self):
+        return copy.deepcopy(self)
+
     # ------------------------------
     # Basic Grid Operations
     # ------------------------------

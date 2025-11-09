@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from typing import Optional, Tuple
 
 from backend.board import GameState, TileType
@@ -29,6 +30,9 @@ class GameLogic:
             game_state (GameState): The shared game state containing tiles and units.
         """
         self.gs = game_state
+
+    def clone(self):
+        return copy.deepcopy(self)
 
     # ------------------------------
     # Movement & Combat

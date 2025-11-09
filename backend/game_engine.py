@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+
 import pygame
 
 from utils.constants import SCREEN_H, TeamType
@@ -43,6 +45,9 @@ class GameEngine:
         # --- Game state tracking ---
         self.selected_id: int | None = None
         self.current_team: TeamType = TeamType.PLAYER
+
+    def clone(self):
+        return copy.deepcopy(self)
 
     # ------------------------------
     # Player Input Handling

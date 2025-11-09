@@ -1,4 +1,5 @@
 # api/api.py
+import copy
 from typing import Optional
 
 from backend.board import GameState
@@ -31,6 +32,9 @@ class GameAPI:
             player_team.value if isinstance(player_team, TeamType) else player_team
         )
         self.ai_team = ai_team.value if isinstance(ai_team, TeamType) else ai_team
+
+    def clone(self):
+        return copy.deepcopy(self)
 
     def turn_begin_reset(self, team):
         self.game_logic.turn_begin_reset(team)
