@@ -4,7 +4,7 @@ import pickle
 import neat
 
 
-class NEATNetwork:
+class NeatNetwork:
     def __init__(self, genome_path: str, config_path: str):
         with open(genome_path, "rb") as f:
             genome = pickle.load(f)

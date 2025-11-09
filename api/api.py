@@ -69,6 +69,9 @@ class GameAPI:
     def apply_action(self, outputs, logic, team):
         pass
 
+    def get_legal_actions(self, game_state, team):
+        return self.game_logic.get_legal_actions(game_state, team)
+
     def request_move(self, unit, x, y):
         """Frontend requests a unit move. Returns success boolean."""
 

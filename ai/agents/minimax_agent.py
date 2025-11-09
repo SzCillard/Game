@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 from minimax import minimax
 
-from ai.neat.neat_network import NEATNetwork
+from ai.neat.neat_network import NeatNetwork
 from utils.constants import TeamType
 
 
@@ -12,7 +12,7 @@ class MinimaxAgent:
     def __init__(self):
         self.brain = None
 
-    def setup_brain(self, brain: NEATNetwork):
+    def setup_brain(self, brain: NeatNetwork):
         self.brain = brain
 
     def choose_action(self, game_state: dict[str, Any]):

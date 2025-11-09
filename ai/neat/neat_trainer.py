@@ -6,7 +6,7 @@ from ai.neat.neat_selfplay import SelfPlaySimulator
 from api.api import GameAPI
 
 
-class NEATTrainer:
+class NeatTrainer:
     def __init__(self, config_path: str, game_api: "GameAPI"):
         self.config = neat.Config(
             neat.DefaultGenome,

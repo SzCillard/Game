@@ -1,4 +1,4 @@
-# ai/basic_agent.py
+# ai/agents/basic_agent.py
 from typing import Any, Dict, Optional
 
 from utils.helpers import manhattan, next_step_toward_snapshot

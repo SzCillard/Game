@@ -12,7 +12,7 @@ This module:
 
 import pygame
 
-from ai.basic_agent import BasicAgent
+from ai.agents.basic_agent import BasicAgent
 from ai.draft_helper import get_ai_draft_units
 from api.api import GameAPI
 from backend.board import GameState, create_random_map

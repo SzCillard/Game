@@ -1,8 +1,8 @@
 # ai/neat/neat_selfplay.py
 
+from ai.agents.neat_agent import NeatAgent
 from ai.draft_helper import get_ai_draft_units
-from ai.neat.minimax_agent import MinimaxAgent
-from ai.neat.neat_network import NEATNetwork
+from ai.neat.neat_network import NeatNetwork
 from api.api import GameAPI
 from backend.board import GameState, create_random_map
 from backend.logic import GameLogic
@@ -17,7 +17,7 @@ class SelfPlaySimulator:
     def __init__(self, config, game_api: "GameAPI"):
         self.config = config
         self.game_api = game_api
-        self.agent = MinimaxAgent()
+        self.agent = NeatAgent()
 
     def play_match(self, genome_a, genome_b):
         """
@@ -25,8 +25,8 @@ class SelfPlaySimulator:
         Returns (fitness_a, fitness_b).
         """
 
-        net_a = NEATNetwork.from_genome(genome_a, self.config)
-        net_b = NEATNetwork.from_genome(genome_b, self.config)
+        net_a = NeatNetwork.from_genome(genome_a, self.config)
+        net_b = NeatNetwork.from_genome(genome_b, self.config)
         # Minimal board
         gs = GameState(
             width=8,
@@ -42,37 +42,22 @@ class SelfPlaySimulator:
 
         self.game_api.add_units(ai_draft_names, team=TeamType.AI)
 
-        # Game loop (simplified)
+        # Game loop
         max_turns = 30
         for _ in range(max_turns):
             for team, net in [(TeamType.PLAYER, net_a), (TeamType.AI, net_b)]:
-                state = self.game_api.get_board_snapshot()  # or logic.get_snapshot()
-                action = self.agent.get_next_actions(state, team)
+                game_state = self.game_api.get_board_snapshot()
+                legal_moves = self.game_api.get_legal_actions(game_state, team)
+
+                action = self.agent.get_next_actions(
+                    self.game_api, net, game_state, legal_moves, team
+                )
                 self.game_api.apply_action(action, logic, team)
 
                 if self.game_api.is_game_over():
                     return self.compute_fitness(gs)
 
         return self.compute_fitness(gs)
-
-    """
-    def extract_features(self, game_state, team):
-        # Same feature encoding as in NEATAgent.encode_state()
-        ally_units = [u for u in game_state["units"] if u["team"] == team]
-        enemy_units = [u for u in game_state["units"] if u["team"] != team]
-        ally_hp = sum(u.health for u in ally_units)
-        enemy_hp = sum(u.health for u in enemy_units)
-        return np.array([ally_hp / 1000, enemy_hp / 1000])
-    """
-    """
-    def apply_action(self, outputs, logic, team):
-        # Simplified — map outputs to high-level action
-        action_idx = int(np.argmax(outputs))
-        if action_idx == 0:
-            logic.move_random(team)
-        elif action_idx == 1:
-            logic.attack_random(team)
-    """
 
     def compute_fitness(self, gs):
         """Return (player_fitness, ai_fitness)."""
