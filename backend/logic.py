@@ -67,6 +67,80 @@ class GameLogic:
                 tiles.append((target.x, target.y))
         return tiles
 
+    def get_legal_actions(self, game_state, team) -> list[dict]:
+        actions = []
+        units = [
+            u
+            for u in self.gs.units
+            if u.team == team and not u.has_acted and u.move_points > EPSILON
+        ]
+
+        for unit in units:
+            # Moves
+            movable_tiles = self.get_movable_tiles(unit)
+            for x, y in movable_tiles:
+                actions.append({"unit_id": unit.id, "type": "move", "target": (x, y)})
+
+            # Attacks
+            attackable_tiles = self.get_attackable_tiles(unit)
+            for x, y in attackable_tiles:
+                defender = self.gs.get_unit_at(x, y)
+                if defender:
+                    actions.append(
+                        {"unit_id": unit.id, "type": "attack", "target": defender.id}
+                    )
+
+            # Always allow wait/pass (finish action)
+            actions.append({"unit_id": unit.id, "type": "wait", "target": None})
+
+        return actions
+
+    """
+    def get_legal_actions_from_snapshot(self, game_state_snapshot, team) -> list[dict]:
+        actions = []
+
+        # units structured like snapshot["units"]
+        units = [
+            u for u in game_state_snapshot["units"]
+            if int(u["team"]) == int(team)
+            and not u["has_acted"]
+            and u["move_points"] > 0
+        ]
+
+        for unit in units:
+            ux, uy = unit["x"], unit["y"]
+
+            # MOVES
+            for x in range(game_state_snapshot["width"]):
+                for y in range(game_state_snapshot["height"]):
+                    if self._can_move_snapshot(game_state_snapshot, unit, x, y):
+                        actions.append({
+                            "unit_id": unit["id"],
+                            "type": "move",
+                            "target": (x, y)
+                        })
+
+            # ATTACKS
+            for enemy in game_state_snapshot["units"]:
+                if enemy["team"] != team and enemy["health"] > 0:
+                    if abs(enemy["x"] - ux) + abs(enemy["y"] - uy)
+                    <= max(1, unit["attack_range"]):
+                        actions.append({
+                            "unit_id": unit["id"],
+                            "type": "attack",
+                            "target": enemy["id"]
+                        })
+
+            # WAIT action
+            actions.append({
+                "unit_id": unit["id"],
+                "type": "wait",
+                "target": None
+            })
+
+        return actions
+    """
+
     def can_move(self, unit: Unit, to_x: int, to_y: int) -> bool:
         """
         Determine if a unit can move to a target tile.
