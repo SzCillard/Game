@@ -12,6 +12,7 @@ class Unit(ABC):
         name: UnitType,
         x: int,
         y: int,
+        team_id: int,
         team: TeamType,
         max_hp: int,
         health: int,
@@ -25,6 +26,7 @@ class Unit(ABC):
         self.name: str = name.value
         self.x: int = x
         self.y: int = y
+        self.team_id: int = team_id
         self.team: TeamType = team
         self.max_hp: int = health  # set by subclass
         self.health: int = health
@@ -44,12 +46,13 @@ class Unit(ABC):
 
 
 class Swordsman(Unit):
-    def __init__(self, x: int, y: int, team: TeamType):
+    def __init__(self, x: int, y: int, team_id: int, team: TeamType):
         stats = UNIT_STATS["Swordsman"]
         super().__init__(
             name=UnitType.SWORDSMAN,
             x=x,
             y=y,
+            team_id=team_id,
             team=team,
             max_hp=stats["health"],
             health=stats["health"],
@@ -61,12 +64,13 @@ class Swordsman(Unit):
 
 
 class Archer(Unit):
-    def __init__(self, x: int, y: int, team: TeamType):
+    def __init__(self, x: int, y: int, team_id: int, team: TeamType):
         stats = UNIT_STATS["Archer"]
         super().__init__(
             name=UnitType.ARCHER,
             x=x,
             y=y,
+            team_id=team_id,
             team=team,
             max_hp=stats["health"],
             health=stats["health"],
@@ -78,12 +82,13 @@ class Archer(Unit):
 
 
 class Horseman(Unit):
-    def __init__(self, x: int, y: int, team: TeamType):
+    def __init__(self, x: int, y: int, team_id: int, team: TeamType):
         stats = UNIT_STATS["Horseman"]
         super().__init__(
             name=UnitType.HORSEMAN,
             x=x,
             y=y,
+            team_id=team_id,
             team=team,
             max_hp=stats["health"],
             health=stats["health"],
@@ -95,12 +100,13 @@ class Horseman(Unit):
 
 
 class Spearman(Unit):
-    def __init__(self, x: int, y: int, team: TeamType):
+    def __init__(self, x: int, y: int, team_id: int, team: TeamType):
         stats = UNIT_STATS["Spearman"]
         super().__init__(
             name=UnitType.SPEARMAN,
             x=x,
             y=y,
+            team_id=team_id,
             team=team,
             max_hp=stats["health"],
             health=stats["health"],
