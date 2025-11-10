@@ -21,7 +21,7 @@ class NeatAgent:
     def _encode_state(self, game_state: dict[str, Any], team) -> np.ndarray:
         """Extract numerical features for the neural network."""
 
-        ally_units = [u for u in game_state["units"] if u["team"] == TeamType.PLAYER]
+        ally_units = [u for u in game_state["units"] if u["team"] == TeamType.HUMAN]
         enemy_units = [u for u in game_state["units"] if u["team"] == TeamType.AI]
 
         ally_count = len(ally_units)
@@ -83,7 +83,7 @@ class NeatAgent:
                 `get_board_snapshot()`, `get_legal_actions(state, team)`,
                 `clone()`, and `apply_action(action)`.
             team (Any):
-                The team identifier (e.g., `TeamType.PLAYER` or `TeamType.AI`)
+                The team identifier (e.g., `TeamType.HUMAN` or `TeamType.AI`)
                 for which to generate possible action sequences.
             max_sets (int, optional):
                 The maximum number of complete action sequences to generate.

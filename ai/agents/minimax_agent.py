@@ -33,7 +33,7 @@ class MinimaxAgent:
     def encode_state(self, game_state: dict[str, Any], team) -> np.ndarray:
         """Extract numerical features for the neural network."""
 
-        ally_units = [u for u in game_state["units"] if u["team"] == TeamType.PLAYER]
+        ally_units = [u for u in game_state["units"] if u["team"] == TeamType.HUMAN]
         enemy_units = [u for u in game_state["units"] if u["team"] == TeamType.AI]
 
         ally_count = len(ally_units)

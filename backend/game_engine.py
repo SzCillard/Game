@@ -44,7 +44,7 @@ class GameEngine:
 
         # --- Game state tracking ---
         self.selected_id: int | None = None
-        self.current_team: TeamType = TeamType.PLAYER
+        self.current_team: TeamType = TeamType.HUMAN
 
     def clone(self):
         return copy.deepcopy(self)
@@ -73,7 +73,7 @@ class GameEngine:
                 return False
 
             # Handle only when it's player's turn
-            if self.current_team == TeamType.PLAYER:
+            if self.current_team == TeamType.HUMAN:
                 action = self.game_api.handle_ui_event(
                     event, snapshot["units"], self.selected_id
                 )
@@ -85,7 +85,7 @@ class GameEngine:
                     if result.get("end_turn_requested"):
                         # Mark all player units as having acted
                         for u in self.game_api.get_units():
-                            if u.team == TeamType.PLAYER:
+                            if u.team == TeamType.HUMAN:
                                 u.has_acted = True
                         self.selected_id = None
 
@@ -126,7 +126,7 @@ class GameEngine:
             self.screen,
             snapshot,
             self.selected_id,
-            is_player_turn=(self.current_team == TeamType.PLAYER),
+            is_player_turn=(self.current_team == TeamType.HUMAN),
         )
 
         # Highlight movement and attack ranges for the selected unit
@@ -162,7 +162,7 @@ class GameEngine:
         # Determine outcome text
         if winner == 0:
             winner_text = "Draw!"
-        elif winner == TeamType.PLAYER:
+        elif winner == TeamType.HUMAN:
             winner_text = "Player wins!"
         else:
             winner_text = "AI wins!"
@@ -185,8 +185,8 @@ class GameEngine:
         executing its logic before returning control to the player.
         """
         # --- Player's turn ---
-        if self.current_team == TeamType.PLAYER:
-            if self.game_api.check_turn_end(TeamType.PLAYER):
+        if self.current_team == TeamType.HUMAN:
+            if self.game_api.check_turn_end(TeamType.HUMAN):
                 # Transition to AI turn
                 self.current_team = TeamType.AI
                 self.game_api.turn_begin_reset(TeamType.AI)
@@ -194,8 +194,8 @@ class GameEngine:
         # --- AI's turn ---
         elif self.current_team == TeamType.AI:
             self.game_api.run_ai_turn(TeamType.AI)
-            self.game_api.turn_begin_reset(TeamType.PLAYER)
-            self.current_team = TeamType.PLAYER
+            self.game_api.turn_begin_reset(TeamType.HUMAN)
+            self.current_team = TeamType.HUMAN
 
     # ------------------------------
     # Main Game Loop

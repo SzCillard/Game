@@ -43,7 +43,7 @@ class SelfPlaySimulator:
         # Game loop
         max_turns = 30
         for _ in range(max_turns):
-            for team, net in [(TeamType.PLAYER, net_a), (TeamType.AI, net_b)]:
+            for team, net in [(TeamType.HUMAN, net_a), (TeamType.AI, net_b)]:
                 # game_state = self.game_api.get_board_snapshot()
 
                 # legal_moves = self.game_api.get_legal_actions(game_state, team)
@@ -57,7 +57,7 @@ class SelfPlaySimulator:
 
     def compute_fitness(self, game_board):
         """Return (player_fitness, ai_fitness)."""
-        player_hp = sum(u.health for u in game_board.units if u.team == TeamType.PLAYER)
+        player_hp = sum(u.health for u in game_board.units if u.team == TeamType.HUMAN)
         ai_hp = sum(u.health for u in game_board.units if u.team == TeamType.AI)
         total_hp = player_hp + ai_hp + 1e-6
         return player_hp / total_hp, ai_hp / total_hp

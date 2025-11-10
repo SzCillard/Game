@@ -15,7 +15,7 @@ def load_unit_images(cell_size: int):
     for unit in UnitType:
         images[unit] = {}
         for team in TeamType:
-            team_name = "purple" if team == TeamType.PLAYER else "red"
+            team_name = "purple" if team == TeamType.HUMAN else "red"
             rel = f"{base_path}/{unit.name.lower()}/{unit.name.lower()}_{team_name}.png"
             path = get_asset_path(rel)
 

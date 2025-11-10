@@ -70,13 +70,13 @@ def create_game(ui: UI, player_unit_names: list[str]) -> GameAPI:
             game_board=game_state,
             game_logic=game_logic,
             agent=BasicAgent(),  # Default AI
-            player_team=TeamType.PLAYER,
+            player_team=TeamType.HUMAN,
             ai_team=TeamType.AI,
         )
 
         # --- Add PLAYER units based on selection ---
 
-        game_api.add_units(player_unit_names, team=TeamType.PLAYER)
+        game_api.add_units(player_unit_names, team=TeamType.HUMAN)
 
         # --- AI units (basic mirror for now) ---
 

@@ -36,7 +36,7 @@ class UnitType(Enum):
 
 
 class TeamType(IntEnum):
-    PLAYER = 1
+    HUMAN = 1
     AI = 2
 
 
@@ -112,9 +112,9 @@ STARTING_FUNDS = 100  # starting funds per player
 
 # Effectiveness multipliers: attacker -> defender
 EFFECTIVENESS = {
-    "Archer": {"Swordsman": 1.0, "Horseman": 0.8, "Spearman": 1.0},
+    "Archer": {"Swordsman": 1.0, "Horseman": 0.9, "Spearman": 1.0},
     "Swordsman": {"Archer": 1.0, "Horseman": 1.0, "Spearman": 1.0},
-    "Horseman": {"Archer": 1.3, "Swordsman": 1.1, "Spearman": 0.8},
+    "Horseman": {"Archer": 1.2, "Swordsman": 1.1, "Spearman": 0.8},
     "Spearman": {"Archer": 1.0, "Swordsman": 0.9, "Horseman": 1.3},
 }
 
@@ -136,7 +136,7 @@ SIDEBAR_WIDTH = 200
 FPS = 60
 
 TEAM_COLORS = {
-    TeamType.PLAYER: Color.BLUE.value,
+    TeamType.HUMAN: Color.BLUE.value,
     TeamType.AI: Color.RED.value,
 }
 

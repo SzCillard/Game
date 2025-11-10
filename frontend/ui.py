@@ -180,7 +180,7 @@ class UI:
             if selected is None:
                 if (
                     target
-                    and target["team"] == TeamType.PLAYER
+                    and target["team"] == TeamType.HUMAN
                     and not target["has_acted"]
                 ):
                     return {"type": "select", "selected_id": target["id"]}

@@ -101,7 +101,7 @@ class GameState:
         units_per_row = 3
 
         # Define spawn zones
-        if team == TeamType.PLAYER:
+        if team == TeamType.HUMAN:
             start_x = 1
             start_y = self.height - 4  # Bottom rows
             x_dir = 1

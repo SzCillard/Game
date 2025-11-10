@@ -21,7 +21,7 @@ class GameAPI:
         game_board: GameState,
         game_logic: GameLogic,
         agent,
-        player_team: TeamType = TeamType.PLAYER,
+        player_team: TeamType = TeamType.HUMAN,
         ai_team: TeamType = TeamType.AI,
     ):
         self.game_ui = game_ui
