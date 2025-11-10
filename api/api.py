@@ -16,33 +16,42 @@ from utils.messages import draw_messages
 class GameAPI:
     def __init__(
         self,
-        game_ui: UI,
-        renderer: Renderer,
+        game_ui: Optional[UI],
+        renderer: Optional[Renderer],
         game_board: GameState,
         game_logic: GameLogic,
         agent,
-        player_team: TeamType = TeamType.HUMAN,
-        ai_team: TeamType = TeamType.AI,
+        team1_id: int = 1,
+        team2_id: int = 2,
+        team1_type: TeamType = TeamType.HUMAN,
+        team2_type: TeamType = TeamType.AI,
     ):
         self.game_ui = game_ui
         self.renderer = renderer
         self.game_board = game_board
         self.game_logic = game_logic
         self.agent = agent
+
         # Store integer values internally for comparisons
-        self.player_team = (
-            player_team.value if isinstance(player_team, TeamType) else player_team
+        self.team1_type = (
+            team1_type.value if isinstance(team1_type, TeamType) else team1_type
         )
-        self.ai_team = ai_team.value if isinstance(ai_team, TeamType) else ai_team
+        self.team2_type = (
+            team2_type.value if isinstance(team2_type, TeamType) else team2_type
+        )
 
     def clone(self) -> GameAPI:
         return copy.deepcopy(self)
 
-    def turn_begin_reset(self, team):
-        self.game_logic.turn_begin_reset(team)
+    def reset(self, game_board: GameState):
+        self.game_board = game_board
+        self.game_logic.game_board = self.game_board
 
-    def check_turn_end(self, team):
-        return self.game_logic.check_turn_end(team)
+    def turn_begin_reset(self, team_id: int):
+        self.game_logic.turn_begin_reset(team_id)
+
+    def check_turn_end(self, team_id: int):
+        return self.game_logic.check_turn_end(team_id)
 
     def run_ai_turn(self, team):
         return self.game_logic.run_ai_turn(self.agent, team)
@@ -59,8 +68,12 @@ class GameAPI:
         """Return the unit at (x,y) or None if empty"""
         return self.game_board.get_unit_at(x, y)
 
-    def add_units(self, unit_name_list: list[str], team: TeamType) -> None:
-        self.game_board.add_units(unit_name_list, team)
+    def add_units(
+        self, unit_name_list: list[str], team_id: int, team: TeamType
+    ) -> None:
+        self.game_board.add_units(
+            unit_name_list=unit_name_list, team_id=team_id, team=team
+        )
 
     def is_game_over(self):
         return self.game_logic.is_game_over()
@@ -70,8 +83,8 @@ class GameAPI:
 
     # --- Action requests (frontend calls these) ---
 
-    def get_legal_actions(self, game_state, team):
-        return self.game_logic.get_legal_actions(game_state, team)
+    def get_legal_actions(self, team_id):
+        return self.game_logic.get_legal_actions(team_id)
 
     def request_move(self, unit, x, y):
         """Frontend requests a unit move. Returns success boolean."""
@@ -102,39 +115,38 @@ class GameAPI:
     def get_ai_action(self):
         """Ask the agent to decide its next action"""
         snapshot = self.get_board_snapshot()
-        return self.agent.decide_next_action(snapshot, self.ai_team)
+        return self.agent.decide_next_action(snapshot, self.team2_type)
 
     # --- UI/Renderer interactions (backend calls these) ---
     def start_menu(self, screen, font):
+        if not self.game_ui:
+            return None
         return self.game_ui.start_menu(screen, font)
 
     def handle_ui_event(self, event, units_snapshot, selected_id):
-        """
-        Handle a pygame event and return an action dictionary if applicable.
-        Action dict format:
-        {
-            "type": "select" | "move" | "attack",
-            ... other fields depending on type ...
-        }
-        """
+        if not self.game_ui:
+            return None
         return self.game_ui.handle_event(event, units_snapshot, selected_id)
 
     def apply_ui_action(self, action):
+        if not self.game_ui:
+            return None
         return self.game_ui.apply_action(action, self)
 
     def draw(self, screen, board_snapshot, selected_id=None, is_player_turn=False):
-        # --- Sidebar first (so board draws next to it) ---
+        if not self.renderer:
+            return
         self.renderer.draw_sidebar(screen, board_snapshot, selected_id, is_player_turn)
-
-        # --- Grid and units ---
         self.renderer.draw_grid(screen, board_snapshot)
         self.renderer.draw_units(screen, board_snapshot, selected_id)
 
     def draw_center_text(self, screen, text):
-        self.renderer.draw_center_text(screen, text)
+        if self.renderer:
+            self.renderer.draw_center_text(screen, text)
 
     def draw_messages(self, screen, font, screen_height):
         draw_messages(screen, font, screen_height)
 
     def draw_highlights(self, screen, move_tiles, attack_tiles):
-        self.renderer.draw_highlights(screen, move_tiles, attack_tiles)
+        if self.renderer:
+            self.renderer.draw_highlights(screen, move_tiles, attack_tiles)

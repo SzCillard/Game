@@ -8,7 +8,6 @@ if TYPE_CHECKING:
     from api.api import GameAPI
 
 from ai.neat.neat_network import NeatNetwork
-from utils.constants import TeamType
 
 
 class NeatAgent:
@@ -18,11 +17,17 @@ class NeatAgent:
     def setup_brain(self, brain: NeatNetwork):
         self.brain = brain
 
-    def _encode_state(self, game_state: dict[str, Any], team) -> np.ndarray:
+    def _encode_state(self, game_state: dict[str, Any], team_id: int) -> np.ndarray:
         """Extract numerical features for the neural network."""
 
-        ally_units = [u for u in game_state["units"] if u["team"] == TeamType.HUMAN]
-        enemy_units = [u for u in game_state["units"] if u["team"] == TeamType.AI]
+        units = game_state["units"]
+        ally_units = []
+        enemy_units = []
+        for u in units:
+            if u["team_id"] == team_id:
+                ally_units.append(u)
+            else:
+                enemy_units.append(u)
 
         ally_count = len(ally_units)
         enemy_count = len(enemy_units)
@@ -42,7 +47,7 @@ class NeatAgent:
 
         return np.array(
             [
-                team.Value,
+                team_id,
                 ally_hp / 1000.0,
                 enemy_hp / 1000.0,
                 ally_count / 10.0,
@@ -51,10 +56,12 @@ class NeatAgent:
             ]
         )
 
-    def _eval_state(self, net: NeatNetwork, game_state: dict[str, Any], team) -> float:
+    def _eval_state(
+        self, net: NeatNetwork, game_state: dict[str, Any], team_id: int
+    ) -> float:
         """Evaluate the game state"""
 
-        encoded_state = self._encode_state(game_state, team)
+        encoded_state = self._encode_state(game_state, team_id)
         prediction = net.predict(encoded_state)
         return prediction[0]
 
@@ -64,7 +71,7 @@ class NeatAgent:
         return {"type": actions[action_idx]}
 
     def _get_set_of_actions(
-        self, game_api: "GameAPI", team: TeamType, max_sets: int = 10
+        self, game_api: "GameAPI", team_id: int, max_sets: int = 10
     ) -> list[list[dict[str, Any]]]:
         """
         Generate up to `max_sets` complete action sequences (sets of actions)
@@ -122,12 +129,11 @@ class NeatAgent:
                 return
 
             # Get all legal actions for this team
-            legal_actions = api_clone.get_legal_actions(
-                api_clone.get_board_snapshot(), team
-            )
+            # TODO: refactor to use team_id
+            legal_actions = api_clone.get_legal_actions(team_id)
 
             # If there are no actions left (leaf)
-            if not legal_actions or api_clone.check_turn_end(team):
+            if not legal_actions or api_clone.check_turn_end(team_id):
                 result_sets.append(current_actions)
                 return
 
@@ -152,34 +158,30 @@ class NeatAgent:
 
         return result_sets
 
-    def _simulate_actions(
-        self, game_api: "GameAPI", game_state, actions: list[dict[str, Any]]
-    ):
+    def _simulate_actions(self, game_api: "GameAPI", actions: list[dict[str, Any]]):
         api_clone = game_api.clone()
         for action in actions:
             api_clone.apply_action(action)
         return api_clone.get_board_snapshot()
 
     def _get_next_actions(
-        self, game_api: "GameAPI", net: NeatNetwork, team
+        self, game_api: "GameAPI", net: NeatNetwork, team_id
     ) -> list[dict]:
-        all_action_sets = self._get_set_of_actions(game_api, team)
+        all_action_sets = self._get_set_of_actions(game_api, team_id)
         best_score = -1e9
         best_set = []
 
         for actions in all_action_sets:
-            new_state = self._simulate_actions(
-                game_api, game_api.get_board_snapshot(), actions
-            )
-            score = self._eval_state(net, new_state, team)
+            new_state = self._simulate_actions(game_api, actions)
+            score = self._eval_state(net, new_state, team_id)
             if score > best_score:
                 best_score = score
                 best_set = actions
 
         return best_set
 
-    def execute_next_actions(self, game_api: "GameAPI", net: NeatNetwork, team):
-        actions = self._get_next_actions(game_api, net, team)
+    def execute_next_actions(self, game_api: "GameAPI", net: NeatNetwork, team_id: int):
+        actions = self._get_next_actions(game_api, net, team_id)
         for action in actions:
             game_api.apply_action(action)
 

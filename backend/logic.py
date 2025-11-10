@@ -55,50 +55,6 @@ class GameLogic:
                     tiles.append((x, y))
         return tiles
 
-    def get_attackable_tiles(self, unit: Unit) -> list[Tuple[int, int]]:
-        """
-        Get all tiles containing enemy units that the given unit can attack.
-
-        Args:
-            unit (Unit): The attacking unit.
-
-        Returns:
-            list[tuple[int, int]]: Positions of enemy units in range.
-        """
-        tiles: list[Tuple[int, int]] = []
-        for target in self.game_board.units:
-            if self.can_attack(unit, target):
-                tiles.append((target.x, target.y))
-        return tiles
-
-    def get_legal_actions(self, game_state, team) -> list[dict]:
-        actions = []
-        units = [
-            u
-            for u in self.game_board.units
-            if u.team == team and not u.has_acted and u.move_points > EPSILON
-        ]
-
-        for unit in units:
-            # Moves
-            movable_tiles = self.get_movable_tiles(unit)
-            for x, y in movable_tiles:
-                actions.append({"unit_id": unit.id, "type": "move", "target": (x, y)})
-
-            # Attacks
-            attackable_tiles = self.get_attackable_tiles(unit)
-            for x, y in attackable_tiles:
-                defender = self.game_board.get_unit_at(x, y)
-                if defender:
-                    actions.append(
-                        {"unit_id": unit.id, "type": "attack", "target": defender.id}
-                    )
-
-            # Always allow wait/pass (finish action)
-            actions.append({"unit_id": unit.id, "type": "wait", "target": None})
-
-        return actions
-
     def can_move(self, unit: Unit, to_x: int, to_y: int) -> bool:
         """
         Determine if a unit can move to a target tile.
@@ -160,6 +116,22 @@ class GameLogic:
         )
         return True
 
+    def get_attackable_tiles(self, unit: Unit) -> list[Tuple[int, int]]:
+        """
+        Get all tiles containing enemy units that the given unit can attack.
+
+        Args:
+            unit (Unit): The attacking unit.
+
+        Returns:
+            list[tuple[int, int]]: Positions of enemy units in range.
+        """
+        tiles: list[Tuple[int, int]] = []
+        for target in self.game_board.units:
+            if self.can_attack(unit, target):
+                tiles.append((target.x, target.y))
+        return tiles
+
     def can_attack(self, attacker: Unit, defender: Unit) -> bool:
         """
         Check whether an attack is possible between two units.
@@ -171,7 +143,7 @@ class GameLogic:
         Returns:
             bool: True if attack is possible, False otherwise.
         """
-        if attacker.team == defender.team:
+        if attacker.team_id == defender.team_id:
             return False
         return manhattan(attacker.x, attacker.y, defender.x, defender.y) <= max(
             1, attacker.attack_range
@@ -219,6 +191,34 @@ class GameLogic:
         self.game_board.remove_dead()
         return True
 
+    def get_legal_actions(self, team_id) -> list[dict]:
+        actions = []
+        units = [
+            u
+            for u in self.game_board.units
+            if u.team_id == team_id and not u.has_acted and u.move_points > EPSILON
+        ]
+
+        for unit in units:
+            # Moves
+            movable_tiles = self.get_movable_tiles(unit)
+            for x, y in movable_tiles:
+                actions.append({"unit_id": unit.id, "type": "move", "target": (x, y)})
+
+            # Attacks
+            attackable_tiles = self.get_attackable_tiles(unit)
+            for x, y in attackable_tiles:
+                defender = self.game_board.get_unit_at(x, y)
+                if defender:
+                    actions.append(
+                        {"unit_id": unit.id, "type": "attack", "target": defender.id}
+                    )
+
+            # Always allow wait/pass (finish action)
+            actions.append({"unit_id": unit.id, "type": "wait", "target": None})
+
+        return actions
+
     def apply_action(self, action: dict):
         unit = next(
             (u for u in self.game_board.units if u.id == action["unit_id"]), None
@@ -261,7 +261,7 @@ class GameLogic:
     # Turn Flow Helpers
     # ------------------------------
 
-    def turn_begin_reset(self, team: int) -> None:
+    def turn_begin_reset(self, team_id: int) -> None:
         """
         Reset movement and action flags for all units at the start of their team's turn.
 
@@ -269,12 +269,12 @@ class GameLogic:
             team (int): The team whose turn begins.
         """
         for u in self.game_board.units:
-            if u.team == team:
+            if u.team_id == team_id:
                 u.move_points = u.move_range
                 u.has_attacked = False
                 u.has_acted = False
 
-    def check_turn_end(self, team: int) -> bool:
+    def check_turn_end(self, team_id: int) -> bool:
         """
         Check if all units on a team have completed their actions.
 
@@ -284,7 +284,7 @@ class GameLogic:
         Returns:
             bool: True if all units have acted, False otherwise.
         """
-        units = [u for u in self.game_board.units if u.team == team]
+        units = [u for u in self.game_board.units if u.team_id == team_id]
         for u in units:
             if u.move_points <= EPSILON:
                 u.has_acted = True
@@ -315,32 +315,32 @@ class GameLogic:
         Returns:
             bool: True if one or both teams have no units left.
         """
-        teams = {u.team for u in self.game_board.units}
-        return not (1 in teams and 2 in teams)
+        team_ids = {u.team_id for u in self.game_board.units}
+        return not (1 in team_ids and 2 in team_ids)
 
     # ------------------------------
     # AI Turn Runner
     # ------------------------------
 
-    def run_ai_turn(self, agent, ai_team: int) -> None:
+    def run_ai_turn(self, agent, team2_type: int) -> None:
         """
         Execute a full AI turn, allowing each AI-controlled unit to act once.
 
         Args:
             agent: The AI agent object with a `decide_next_action` method.
-            ai_team (int): The numeric team ID for the AI.
+            team2_type (int): The numeric team ID for the AI.
         """
         ai_units = [
             u
             for u in self.game_board.units
-            if u.team == ai_team and not u.has_acted and u.move_points > EPSILON
+            if u.team == team2_type and not u.has_acted and u.move_points > EPSILON
         ]
 
         for unit in ai_units:
             while unit.move_points > EPSILON and not unit.has_acted:
                 # Snapshot used for AI decision-making
                 snapshot = self.game_board.get_snapshot()
-                action = agent.decide_next_action(snapshot, ai_team)
+                action = agent.decide_next_action(snapshot, team2_type)
 
                 # No available action
                 if not action:

@@ -1,3 +1,4 @@
+# backend/game_engine.py
 from __future__ import annotations
 
 import copy
@@ -11,59 +12,30 @@ from utils.music_utils import play_battle_music
 
 class GameEngine:
     """
-    Core controller that manages game flow, input handling,
-    rendering, and turn transitions between the player and AI.
-
-    Responsibilities:
-    - Process player inputs and UI actions
-    - Manage alternating turns between player and AI
-    - Coordinate rendering and highlight logic
-    - Check win conditions and display results
+    Manages full game flow, input handling, rendering, and turn alternation.
+    Supports Human vs AI and AI vs AI (self-play) modes.
     """
 
-    def __init__(
-        self,
-        game_api,
-        screen: pygame.Surface,
-        font: pygame.font.Font,
-        clock: pygame.time.Clock,
-    ) -> None:
-        """
-        Initialize the GameEngine.
-
-        Args:
-            game_api: The main GameAPI instance that handles unit logic and game state.
-            screen: The active pygame display surface.
-            font: Font used for UI and text rendering.
-            clock: Pygame clock to regulate frame timing.
-        """
+    def __init__(self, game_api, screen, font, clock) -> None:
         self.game_api = game_api
         self.screen = screen
         self.font = font
         self.clock = clock
 
-        # --- Game state tracking ---
+        # Instead of assuming HUMAN → AI, we track team 1 and 2 generically
+        self.current_team_id: int = 1
         self.selected_id: int | None = None
-        self.current_team: TeamType = TeamType.HUMAN
 
     def clone(self):
         return copy.deepcopy(self)
 
     # ------------------------------
-    # Player Input Handling
+    # Input Handling
     # ------------------------------
-    def handle_player_events(self) -> bool | str:
+    def handle_human_input(self, team_id: int) -> bool | str:
         """
-        Handle and dispatch player input events for the current frame.
-
-        Converts pygame events into UI actions, applies those via GameAPI,
-        and manages sidebar actions (end turn, help, quit, etc.).
-
-        Returns:
-            bool | str:
-                - False → exit the game
-                - "menu" → return to main menu
-                - True → continue game
+        Handle human player's pygame input events for this turn.
+        Returns False to quit, 'menu' for menu, or True to continue.
         """
         snapshot = self.game_api.get_board_snapshot()
 
@@ -72,34 +44,30 @@ class GameEngine:
             if event.type == pygame.QUIT:
                 return False
 
-            # Handle only when it's player's turn
-            if self.current_team == TeamType.HUMAN:
-                action = self.game_api.handle_ui_event(
-                    event, snapshot["units"], self.selected_id
-                )
+            action = self.game_api.handle_ui_event(
+                event, snapshot["units"], self.selected_id
+            )
 
-                if action:
-                    result = self.game_api.apply_ui_action(action)
+            if action:
+                result = self.game_api.apply_ui_action(action)
 
-                    # --- Sidebar buttons ---
-                    if result.get("end_turn_requested"):
-                        # Mark all player units as having acted
-                        for u in self.game_api.get_units():
-                            if u.team == TeamType.HUMAN:
-                                u.has_acted = True
-                        self.selected_id = None
+                if result.get("end_turn_requested"):
+                    # Mark all units for this team as done
+                    for u in self.game_api.get_units():
+                        if u.team_id == team_id:
+                            u.has_acted = True
+                    self.selected_id = None
 
-                    if result.get("menu_requested"):
-                        return "menu"
+                if result.get("menu_requested"):
+                    return "menu"
 
-                    if result.get("quit_requested"):
-                        return False
+                if result.get("quit_requested"):
+                    return False
 
-                    if result.get("help_requested"):
-                        add_message("📖 Help clicked (todo: implement)")
+                if result.get("help_requested"):
+                    add_message("📖 Help clicked (todo: implement)")
 
-                    # Update selected unit based on result
-                    self.selected_id = result.get("selected_id", self.selected_id)
+                self.selected_id = result.get("selected_id", self.selected_id)
 
         return True
 
@@ -107,29 +75,23 @@ class GameEngine:
     # Rendering
     # ------------------------------
     def render(self) -> None:
-        """
-        Render all visible game elements, including units, highlights, and messages.
-
-        Handles:
-        - Drawing the game board and units
-        - Displaying selection highlights for movement and attacks
-        - Rendering game messages and UI overlays
-        """
+        """Redraws the entire game screen and highlights."""
         snapshot = self.game_api.get_board_snapshot()
-
-        # Update any active damage animations
         self.game_api.update_damage_timers()
 
-        # Clear the screen and redraw the board
         self.screen.fill((240, 240, 240))
         self.game_api.draw(
             self.screen,
             snapshot,
             self.selected_id,
-            is_player_turn=(self.current_team == TeamType.HUMAN),
+            is_player_turn=(
+                self.current_team_id == 1 and self.game_api.team1_type == TeamType.HUMAN
+            )
+            or (
+                self.current_team_id == 2 and self.game_api.team2_type == TeamType.HUMAN
+            ),
         )
 
-        # Highlight movement and attack ranges for the selected unit
         if self.selected_id is not None:
             unit = next(
                 (u for u in self.game_api.get_units() if u.id == self.selected_id), None
@@ -144,97 +106,85 @@ class GameEngine:
         pygame.display.flip()
 
     # ------------------------------
-    # Win Condition Check
+    # Turn Management
+    # ------------------------------
+    def run_turn(self) -> bool | str:
+        """
+        Execute one full turn for the current team.
+        Returns False to quit, "menu" for menu, or True to continue.
+        """
+        current_team_id = self.current_team_id
+        team_type = (
+            self.game_api.team1_type
+            if current_team_id == 1
+            else self.game_api.team2_type
+        )
+
+        # --- Human Turn ---
+        if team_type == TeamType.HUMAN:
+            result = self.handle_human_input(current_team_id)
+            if result is not True:
+                return result
+
+            if self.game_api.check_turn_end(current_team_id):
+                self.current_team_id = 2 if current_team_id == 1 else 1
+                self.game_api.turn_begin_reset(self.current_team_id)
+
+        # --- AI Turn ---
+        elif team_type == TeamType.AI:
+            self.game_api.run_ai_turn(current_team_id)
+            if self.game_api.check_turn_end(current_team_id):
+                self.current_team_id = 2 if current_team_id == 1 else 1
+                self.game_api.turn_begin_reset(self.current_team_id)
+
+        return True
+
+    # ------------------------------
+    # Win Condition
     # ------------------------------
     def check_winner(self) -> bool:
-        """
-        Check if the game has been won, lost, or drawn.
-
-        Displays an end-game message if a winner is found.
-
-        Returns:
-            bool: True if the game has ended, False otherwise.
-        """
         winner = self.game_api.get_winner()
         if winner is None:
             return False
 
-        # Determine outcome text
         if winner == 0:
-            winner_text = "Draw!"
-        elif winner == TeamType.HUMAN:
-            winner_text = "Player wins!"
+            text = "Draw!"
         else:
-            winner_text = "AI wins!"
+            # Check which type won (human/ai)
+            if (winner == 1 and self.game_api.team1_type == TeamType.HUMAN) or (
+                winner == 2 and self.game_api.team2_type == TeamType.HUMAN
+            ):
+                text = "Player wins!"
+            else:
+                text = "AI wins!"
 
-        # Display message and wait before returning
-        add_message(winner_text)
-        self.game_api.draw_center_text(self.screen, winner_text)
+        add_message(text)
+        self.game_api.draw_center_text(self.screen, text)
         pygame.display.flip()
-        pygame.time.delay(3000)
+        pygame.time.delay(2000)
         return True
-
-    # ------------------------------
-    # Turn Management
-    # ------------------------------
-    def run_turns(self) -> None:
-        """
-        Handle the alternation of turns between the player and the AI.
-
-        Checks if the player's turn has ended and transitions to the AI’s turn,
-        executing its logic before returning control to the player.
-        """
-        # --- Player's turn ---
-        if self.current_team == TeamType.HUMAN:
-            if self.game_api.check_turn_end(TeamType.HUMAN):
-                # Transition to AI turn
-                self.current_team = TeamType.AI
-                self.game_api.turn_begin_reset(TeamType.AI)
-
-        # --- AI's turn ---
-        elif self.current_team == TeamType.AI:
-            self.game_api.run_ai_turn(TeamType.AI)
-            self.game_api.turn_begin_reset(TeamType.HUMAN)
-            self.current_team = TeamType.HUMAN
 
     # ------------------------------
     # Main Game Loop
     # ------------------------------
     def run(self) -> bool | str:
-        """
-        Run the main gameplay loop.
-
-        Handles input, rendering, and turn logic until
-        a win condition or exit event occurs.
-
-        Returns:
-            bool | str:
-                - True → game finished normally
-                - "menu" → player chose to open menu
-                - False → player quit the game
-        """
-
+        """Main gameplay loop supporting AI vs AI or Human vs AI."""
         play_battle_music()
-
+        self.game_api.turn_begin_reset(self.current_team_id)
         game_active = True
 
         while game_active:
-            # --- Input and event handling ---
-            result = self.handle_player_events()
+            result = self.run_turn()
             if result is False:
                 return False
             if result == "menu":
                 return "menu"
 
-            # --- Game logic and rendering ---
-            self.run_turns()
             self.render()
 
-            # --- Win condition ---
             if self.check_winner():
                 game_active = False
 
-            # Cap frame rate
             self.clock.tick(60)
 
         return True

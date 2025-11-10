@@ -89,7 +89,9 @@ class GameState:
     # Unit Management
     # ------------------------------
 
-    def add_units(self, unit_name_list: list[str], team: TeamType) -> None:
+    def add_units(
+        self, unit_name_list: list[str], team_id: int, team: TeamType
+    ) -> None:
         """
         Add units to the board and initialize their starting positions.
         - Player units spawn on the bottom-left area.
@@ -101,7 +103,7 @@ class GameState:
         units_per_row = 3
 
         # Define spawn zones
-        if team == TeamType.HUMAN:
+        if team_id == 1:
             start_x = 1
             start_y = self.height - 4  # Bottom rows
             x_dir = 1
@@ -130,7 +132,7 @@ class GameState:
                     break
 
             # --- Spawn unit ---
-            new_unit = unit_class(x, y, team=team)
+            new_unit = unit_class(x, y, team_id=team_id, team=team)
             new_unit.move_points = getattr(new_unit, "move_range", 0)
             new_unit.has_attacked = False
             self.units.append(new_unit)
@@ -173,6 +175,7 @@ class GameState:
                     "id": u.id,
                     "x": u.x,
                     "y": u.y,
+                    "team_id": u.team_id,
                     "team": u.team,
                     "health": u.health,
                     "max_hp": getattr(u, "max_hp", u.health),

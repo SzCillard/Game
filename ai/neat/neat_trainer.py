@@ -17,7 +17,7 @@ class NeatTrainer:
             config_path,
         )
         self.game_api = game_api
-        self.sim = SelfPlaySimulator(self.config, game_api=game_api)
+        self.sim = SelfPlaySimulator(self.config, game_api)
 
     def eval_genomes(self, genomes, config):
         """Evaluate all genomes via pairwise self-play."""
