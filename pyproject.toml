@@ -5,6 +5,15 @@ description = ""
 authors = ["Szauer Szilárd <szauerszilard@gmail.com>"]
 readme = "README.md"
 
+packages = [
+    { include = "ai" },
+    { include = "api" },
+    { include = "backend" },
+    { include = "frontend" },
+    { include = "utils" },
+]
+
+
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 tensorflow = "^2.15.0"      # Compatible with Python 3.11
@@ -39,3 +48,4 @@ quote-style = "double"
 
 [tool.poetry.scripts]
 game = "main:main"
+train-neat = "ai.neat.train_neat:main"
