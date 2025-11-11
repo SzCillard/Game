@@ -18,6 +18,38 @@ class NeatTrainer:
         )
         self.game_api = game_api
         self.sim = SelfPlaySimulator(self.config, game_api)
+        self.max_turns = 30
+
+    def compute_fitness(self, winner: int | None, played_turns: int, max_turns: int):
+        """
+        Compute per-match fitness for both genomes.
+
+        Args:
+            winner: 1 if team1 wins, 2 if team2 wins, or None for draw.
+            played_turns: Number of turns the match lasted.
+            max_turns: Maximum possible turns.
+
+        Returns:
+            Tuple (team1_fitness, team2_fitness)
+        """
+        turn_component = 1 - (played_turns / max_turns)
+        team1_score = 0
+        team2_score = 0
+
+        if winner == 1:
+            team1_score = 1
+        elif winner == 2:
+            team2_score = 1
+        else:
+            team1_score = 0.3
+            team2_score = 0.3
+
+        team1_fitness = 0
+        team2_fitness = 0
+        team1_fitness += team1_score * turn_component
+        team2_fitness += team2_score * turn_component
+
+        return team1_fitness, team2_fitness
 
     def eval_genomes(self, genomes, config):
         """Evaluate all genomes via pairwise self-play."""
@@ -26,13 +58,16 @@ class NeatTrainer:
             for j, (gid_b, genome_b) in enumerate(genomes):
                 if i == j:
                     continue
-                f_a, f_b = self.sim.play_match(genome_a, genome_b)
+                winner, played_turns = self.sim.play_match(genome_a, genome_b)
+                f_a, f_b = self.compute_fitness(winner, played_turns, self.max_turns)
+
                 genome_a.fitness += f_a
                 genome_b.fitness += f_b
 
         # Optionally normalize by number of matches
+        genomes_count = len(genomes) - 1
         for _, genome in genomes:
-            genome.fitness /= len(genomes) - 1
+            genome.fitness /= genomes_count
 
     def run(self, generations: int = 50):
         """Run evolution for N generations."""

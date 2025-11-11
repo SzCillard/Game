@@ -1,6 +1,6 @@
 # ai/neat/neat_selfplay.py
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from ai.agents.neat_agent import NeatAgent
 from ai.draft_helper import get_ai_draft_units
@@ -53,23 +53,6 @@ class SelfPlaySimulator:
                 self.agent.execute_next_actions(self.match_api, net, team_id)
 
                 if self.match_api.is_game_over():
-                    game_state_snapshot = self.match_api.get_board_snapshot()
-                    return self.compute_fitness(counter, game_state_snapshot)
+                    return self.match_api.get_winner(), counter
 
-        game_state_snapshot = self.match_api.get_board_snapshot()
-
-        return self.compute_fitness(counter, game_state_snapshot)
-
-    def compute_fitness(
-        self,
-        turn_number: int,
-        game_state_snapshot: dict[str, Any],
-    ) -> tuple[float, float]:
-        """Return fitness for both teams based on remaining HP."""
-        units = game_state_snapshot["units"]
-
-        team1_hp = sum(u["health"] for u in units if u["team_id"] == 1)
-        team2_hp = sum(u["health"] for u in units if u["team_id"] == 2)
-
-        total_hp = team1_hp + team2_hp + 1e-6
-        return team1_hp / total_hp, team2_hp / total_hp
+        return self.match_api.get_winner(), counter
