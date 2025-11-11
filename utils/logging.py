@@ -1,5 +1,6 @@
 import os
 
+ENABLE_LOGGING = False
 LOGPATH = "log/log.txt"
 
 
@@ -16,5 +17,6 @@ def create_log_file():
 
 
 def logger(message: str) -> None:
-    with open(LOGPATH, "a") as f:
-        f.write(f"\n {message}")
+    if ENABLE_LOGGING:
+        with open(LOGPATH, "a") as f:
+            f.write(f"\n {message}")
