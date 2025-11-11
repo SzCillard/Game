@@ -7,7 +7,7 @@ from ai.draft_helper import get_ai_draft_units
 from ai.neat.neat_network import NeatNetwork
 
 if TYPE_CHECKING:
-    from api.api import GameAPI
+    from api.headless_api import HeadlessGameAPI
 from backend.board import GameState, create_random_map
 from utils.constants import TeamType
 
@@ -17,7 +17,7 @@ class SelfPlaySimulator:
     Simulates a match between two NEAT agents using your existing game logic.
     """
 
-    def __init__(self, config, match_api: "GameAPI"):
+    def __init__(self, config, match_api: "HeadlessGameAPI"):
         self.config = config
         self.match_api = match_api.clone()
         self.agent = NeatAgent()

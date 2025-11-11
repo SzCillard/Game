@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 if TYPE_CHECKING:
-    from api.api import GameAPI
+    from api.headless_api import HeadlessGameAPI
 
 from ai.neat.neat_network import NeatNetwork
 
@@ -71,7 +71,7 @@ class NeatAgent:
         return {"type": actions[action_idx]}
 
     def _get_set_of_actions(
-        self, game_api: "GameAPI", team_id: int, max_sets: int = 10
+        self, game_api: "HeadlessGameAPI", team_id: int, max_sets: int = 10
     ) -> list[list[dict[str, Any]]]:
         """
         Generate up to `max_sets` complete action sequences (sets of actions)
@@ -104,7 +104,9 @@ class NeatAgent:
         """
         result_sets = []
 
-        def dfs(current_actions: list[dict[str, Any]], api_clone: "GameAPI") -> None:
+        def dfs(
+            current_actions: list[dict[str, Any]], api_clone: "HeadlessGameAPI"
+        ) -> None:
             """
             Recursive depth-first search helper for exploring all possible
             sequences of legal actions from a given game state.
@@ -158,14 +160,16 @@ class NeatAgent:
 
         return result_sets
 
-    def _simulate_actions(self, game_api: "GameAPI", actions: list[dict[str, Any]]):
+    def _simulate_actions(
+        self, game_api: "HeadlessGameAPI", actions: list[dict[str, Any]]
+    ):
         api_clone = game_api.clone()
         for action in actions:
             api_clone.apply_action(action)
         return api_clone.get_board_snapshot()
 
     def _get_next_actions(
-        self, game_api: "GameAPI", net: NeatNetwork, team_id
+        self, game_api: "HeadlessGameAPI", net: NeatNetwork, team_id
     ) -> list[dict]:
         all_action_sets = self._get_set_of_actions(game_api, team_id)
         best_score = -1e9
@@ -180,7 +184,9 @@ class NeatAgent:
 
         return best_set
 
-    def execute_next_actions(self, game_api: "GameAPI", net: NeatNetwork, team_id: int):
+    def execute_next_actions(
+        self, game_api: "HeadlessGameAPI", net: NeatNetwork, team_id: int
+    ):
         actions = self._get_next_actions(game_api, net, team_id)
         for action in actions:
             game_api.apply_action(action)

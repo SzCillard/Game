@@ -4,11 +4,11 @@ import pickle
 import neat
 
 from ai.neat.neat_selfplay import SelfPlaySimulator
-from api.api import GameAPI
+from api.headless_api import HeadlessGameAPI
 
 
 class NeatTrainer:
-    def __init__(self, config_path: str, game_api: "GameAPI"):
+    def __init__(self, config_path: str, game_api: "HeadlessGameAPI"):
         self.config = neat.Config(
             neat.DefaultGenome,
             neat.DefaultReproduction,
