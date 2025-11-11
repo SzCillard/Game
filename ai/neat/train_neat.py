@@ -11,6 +11,9 @@ def main():
     # Paths
     config_path = os.path.join("ai", "neat", "neat_config.txt")
 
+    # local_dir = os.path.dirname(__file__)
+    # config_path = os.path.join(local_dir, "sample_neat_config.txt")
+
     # Create a fresh game environment for headless simulation
     game_board = GameState(
         width=8,

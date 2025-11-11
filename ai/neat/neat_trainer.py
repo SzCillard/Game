@@ -58,7 +58,6 @@ class NeatTrainer:
             genome.fitness = 0.0
 
         for i, (gid_a, genome_a) in enumerate(genomes):
-            genome_a.fitness = 0
             for j, (gid_b, genome_b) in enumerate(genomes):
                 if i == j:
                     continue
