@@ -65,11 +65,6 @@ class NeatAgent:
         prediction = net.predict(encoded_state)
         return prediction[0]
 
-    def _decode_actions(self, action_idx):
-        """Convert output index back into a valid action."""
-        actions = ["move_up", "move_down", "attack", "wait"]
-        return {"type": actions[action_idx]}
-
     def _get_set_of_actions(
         self, game_api: "HeadlessGameAPI", team_id: int, max_sets: int = 10
     ) -> list[list[dict[str, Any]]]:
@@ -131,7 +126,6 @@ class NeatAgent:
                 return
 
             # Get all legal actions for this team
-            # TODO: refactor to use team_id
             legal_actions = api_clone.get_legal_actions(team_id)
 
             # If there are no actions left (leaf)
