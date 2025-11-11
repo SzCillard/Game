@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Optional
+from typing import Any, Optional
 
 from backend.board import GameState
 from backend.logic import GameLogic
@@ -108,7 +108,7 @@ class GameAPI:
         self.game_logic.apply_action(action)
 
     # --- Agent interaction ---
-    def get_board_snapshot(self):
+    def get_board_snapshot(self) -> dict[str, Any]:
         """Provide a read-only view of the board for AI agents"""
         return self.game_board.get_snapshot()
 

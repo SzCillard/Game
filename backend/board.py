@@ -13,7 +13,7 @@ Each GameState contains:
 import copy
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from backend.units import Archer, Horseman, Spearman, Swordsman, Unit
 from utils.constants import TERRAIN_MOVE_COST, TeamType, TileType
@@ -159,7 +159,7 @@ class GameState:
                 return u
         return None
 
-    def get_snapshot(self) -> Dict[str, Any]:
+    def get_snapshot(self) -> dict[str, Any]:
         """
         Return a simplified snapshot of the current game state.
 
