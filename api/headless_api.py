@@ -1,7 +1,7 @@
 # api/api.py
 from __future__ import annotations
 
-from copy import copy
+import copy
 
 from api.api import GameAPI
 
