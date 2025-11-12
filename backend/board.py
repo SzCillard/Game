@@ -17,6 +17,7 @@ from typing import Any, List, Optional
 
 from backend.units import Archer, Horseman, Spearman, Swordsman, Unit
 from utils.constants import TERRAIN_MOVE_COST, TeamType, TileType
+from variables.variables import evolution_run
 
 # ======================================================================
 # 🎯 Core Game State
@@ -344,6 +345,8 @@ def create_random_map(w: int, h: int) -> List[List[TileType]]:
     Returns:
         list[list[TileType]]: Generated map grid.
     """
+
     map_type = random.choice(list(MAP_GENERATORS.keys()))
-    print(f"🌍 Using map type: {map_type}")
+    if evolution_run is False:
+        print(f"🌍 Using map type: {map_type}")
     return MAP_GENERATORS[map_type](w, h)

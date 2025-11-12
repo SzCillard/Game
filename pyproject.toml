@@ -11,6 +11,7 @@ packages = [
     { include = "backend" },
     { include = "frontend" },
     { include = "utils" },
+    { include = "variables" },
 ]
 
 

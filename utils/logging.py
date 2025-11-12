@@ -1,5 +1,7 @@
 import os
 
+from variables.variables import evolution_run
+
 ENABLE_LOGGING = False
 LOGPATH = "log/log.txt"
 
@@ -17,6 +19,6 @@ def create_log_file():
 
 
 def logger(message: str) -> None:
-    if ENABLE_LOGGING:
+    if evolution_run is False:
         with open(LOGPATH, "a") as f:
             f.write(f"\n {message}")
