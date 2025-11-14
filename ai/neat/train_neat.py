@@ -30,7 +30,7 @@ def main():
     # Run NEAT evolution
     # winner = trainer.run(generations=10)
 
-    trainer.run(generations=10)
+    trainer.run(generations=15)
 
     print("Training complete. Best genome saved to best_genome.pkl")
 
