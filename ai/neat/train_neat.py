@@ -1,5 +1,5 @@
 # ai/neat/train_neat.py
-import os
+import argparse
 
 from ai.neat.neat_trainer import NeatTrainer
 from api.headless_api import HeadlessGameAPI
@@ -7,32 +7,87 @@ from backend.board import GameState, create_random_map
 from backend.logic import GameLogic
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train NEAT via self-play.")
+
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="ai/neat/neat_config.txt",
+        help="Path to NEAT config file.",
+    )
+
+    parser.add_argument(
+        "--generations", type=int, default=10, help="Number of generations to train."
+    )
+
+    parser.add_argument(
+        "--population_size",
+        type=int,
+        default=None,
+        help="Override NEAT config population size.",
+    )
+
+    parser.add_argument("--max_workers", type=int, default=4, help="Process pool size.")
+
+    parser.add_argument(
+        "--opponents", type=int, default=10, help="Opponents per genome per generation."
+    )
+
+    parser.add_argument("--elites", type=int, default=5, help="Carryover elite count.")
+
+    parser.add_argument(
+        "--max_turns", type=int, default=40, help="Max turns per match."
+    )
+
+    return parser.parse_args()
+
+
 def main():
-    # Paths
-    config_path = os.path.join("ai", "neat", "neat_config.txt")
+    args = parse_args()
 
-    # local_dir = os.path.dirname(__file__)
-    # config_path = os.path.join(local_dir, "sample_neat_config.txt")
-
-    # Create a fresh game environment for headless simulation
+    # Create fresh game environment
     game_board = GameState(
         width=8,
         height=8,
         cell_size=64,
         tile_map=create_random_map(8, 8),
     )
-    game_logic = GameLogic(game_board)  # logic tied to that board
+    game_logic = GameLogic(game_board)
     headless_api = HeadlessGameAPI(game_board, game_logic)
 
-    # Create trainer
-    trainer = NeatTrainer(config_path, headless_api)
+    # Inject population override into config file if requested
+    if args.population_size is not None:
+        print(f"⚙️ Overriding population size → {args.population_size}")
+        override_population_size(args.config, args.population_size)
 
-    # Run NEAT evolution
-    # winner = trainer.run(generations=10)
+    # Create trainer with CLI parameters
+    trainer = NeatTrainer(
+        config_path=args.config,
+        game_api=headless_api,
+        max_workers=args.max_workers,
+        opponents_per_genome=args.opponents,
+        carryover_elite_count=args.elites,
+    )
 
-    trainer.run(generations=15)
+    trainer.max_turns = args.max_turns
 
+    trainer.run(generations=args.generations)
     print("Training complete. Best genome saved to best_genome.pkl")
+
+
+def override_population_size(config_path: str, size: int):
+    """Modify NEAT config file's population size dynamically."""
+    lines = []
+    with open(config_path, "r") as f:
+        for line in f.readlines():
+            if line.startswith("pop_size"):
+                lines.append(f"pop_size = {size}\n")
+            else:
+                lines.append(line)
+
+    with open(config_path, "w") as f:
+        f.writelines(lines)
 
 
 if __name__ == "__main__":

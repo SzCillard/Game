@@ -18,8 +18,8 @@ class NeatTrainer:
         self,
         config_path: str,
         game_api: "HeadlessGameAPI",
-        max_workers: int = 4,
-        opponents_per_genome: int = 5,
+        max_workers: int = 5,
+        opponents_per_genome: int = 10,
         carryover_elite_count: int = 5,
     ):
         self.config_path = config_path
