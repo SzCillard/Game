@@ -32,17 +32,15 @@ class NeatAgent:
         ally_count = len(ally_units)
         enemy_count = len(enemy_units)
 
-        # Example features (normalize where possible)
-        ally_hp = sum(u.health for u in ally_units)
-        enemy_hp = sum(u.health for u in enemy_units)
+        # Corrected dict access
+        ally_hp = sum(u["health"] for u in ally_units)
+        enemy_hp = sum(u["health"] for u in enemy_units)
 
-        # Average position (for positioning heuristics)
-        avg_x_ally = np.mean([u.x for u in ally_units]) if ally_units else 0
-        avg_y_ally = np.mean([u.y for u in ally_units]) if ally_units else 0
-        avg_x_enemy = np.mean([u.x for u in enemy_units]) if enemy_units else 0
-        avg_y_enemy = np.mean([u.y for u in enemy_units]) if enemy_units else 0
+        avg_x_ally = np.mean([u["x"] for u in ally_units]) if ally_units else 0
+        avg_y_ally = np.mean([u["y"] for u in ally_units]) if ally_units else 0
+        avg_x_enemy = np.mean([u["x"] for u in enemy_units]) if enemy_units else 0
+        avg_y_enemy = np.mean([u["y"] for u in enemy_units]) if enemy_units else 0
 
-        # Simple derived feature: distance between army centers
         dist = np.hypot(avg_x_ally - avg_x_enemy, avg_y_ally - avg_y_enemy)
 
         return np.array(

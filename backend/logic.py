@@ -94,12 +94,18 @@ class GameLogic:
             bool: True if movement succeeded, False otherwise.
         """
         if not self.can_move(unit, to_x, to_y):
-            logger(f"{unit.name} cannot move there [{to_x};{to_y}].")
+            logger(
+                f"""{unit.name} (ID:{unit.id}) unit of
+                team:{unit.team} cannot move there [{to_x};{to_y}]."""
+            )
             return False
 
         cost = compute_min_cost_gs(self.game_board, (unit.x, unit.y), (to_x, to_y))
         if cost > unit.move_points:
-            logger(f"{unit.name} does not have enough movement points.")
+            logger(
+                f"""{unit.name} (ID:{unit.id}) unit of
+                team:{unit.team} does not have enough movement points."""
+            )
             return False
 
         # --- Execute move ---
@@ -112,7 +118,8 @@ class GameLogic:
             unit.has_acted = True
 
         logger(
-            f"{unit.name} moved to ({to_x},{to_y}), points left: {unit.move_points}."
+            f"""{unit.name} (ID:{unit.id}) unit of team:{unit.team}
+            moved to ({to_x},{to_y}), points left: {unit.move_points}."""
         )
         return True
 
@@ -174,16 +181,27 @@ class GameLogic:
         if attacker.attack_range > 1:
             # Ranged attack — no retaliation
             defender.health -= dmg
-            logger(f"{attacker.name} shot {defender.name} for {dmg}.")
+            logger(
+                f"""{attacker.name} (ID:{attacker.id}) unit of team:{attacker.team}
+                shot {defender.name} (ID:{defender.id}) unit of team:{defender.team}
+                for {dmg}."""
+            )
         else:
             # Melee — defender can retaliate if still alive
             defender.health -= dmg
-            logger(f"{attacker.name} hit {defender.name} for {dmg}.")
+            logger(
+                f"""{attacker.name} (ID:{attacker.id}) unit of team:{attacker.team}
+                hit {defender.name} (ID:{defender.id}) unit of team:{defender.team}
+                for {dmg}."""
+            )
             if defender.health > 0:
                 retaliation = calculate_damage(defender, attacker)
                 attacker.health -= retaliation
                 if retaliation > 0:
-                    logger(f"{defender.name} retaliated for {retaliation}.")
+                    logger(
+                        f"""{defender.name} (ID:{defender.id}) unit of
+                           team:{defender.team} retaliated for {retaliation}."""
+                    )
 
         # --- Finalize attack ---
         attacker.has_attacked = True
@@ -257,17 +275,7 @@ class GameLogic:
                 if u.damage_timer == 0:
                     u.last_damage = 0
 
-    # ------------------------------
-    # Turn Flow Helpers
-    # ------------------------------
-
     def turn_begin_reset(self, team_id: int) -> None:
-        """
-        Reset movement and action flags for all units at the start of their team's turn.
-
-        Args:
-            team (int): The team whose turn begins.
-        """
         for u in self.game_board.units:
             if u.team_id == team_id:
                 u.move_points = u.move_range
@@ -275,15 +283,6 @@ class GameLogic:
                 u.has_acted = False
 
     def check_turn_end(self, team_id: int) -> bool:
-        """
-        Check if all units on a team have completed their actions.
-
-        Args:
-            team (int): Team ID to check.
-
-        Returns:
-            bool: True if all units have acted, False otherwise.
-        """
         units = [u for u in self.game_board.units if u.team_id == team_id]
         for u in units:
             if u.move_points <= EPSILON:
@@ -292,62 +291,44 @@ class GameLogic:
 
     def get_winner(self) -> Optional[int]:
         """
-        Determine the winner based on remaining units.
-
-        Returns:
-            Optional[int]:
-                - 1 → Player (Team 1) wins
-                - 2 → AI (Team 2) wins
-                - 0 → Draw
-                - None → Game still ongoing
+        Winner based on remaining team_ids.
+        Returns: 1, 2, 0 (draw) or None.
         """
-        teams = {u.team for u in self.game_board.units}
-        if 1 in teams and 2 in teams:
+        team_ids = {u.team_id for u in self.game_board.units}
+        if 1 in team_ids and 2 in team_ids:
             return None
-        if 1 not in teams and 2 not in teams:
+        if 1 not in team_ids and 2 not in team_ids:
             return 0  # Draw
-        return 1 if 1 in teams else 2
+        return 1 if 1 in team_ids else 2
 
     def is_game_over(self) -> bool:
-        """
-        Check whether the game has reached an end state.
-
-        Returns:
-            bool: True if one or both teams have no units left.
-        """
         team_ids = {u.team_id for u in self.game_board.units}
         return not (1 in team_ids and 2 in team_ids)
 
     # ------------------------------
-    # AI Turn Runner
+    # AI Turn Runner (for BasicAgent-style agents)
     # ------------------------------
 
-    def run_ai_turn(self, agent, team2_type: int) -> None:
+    def run_ai_turn(self, agent, team_id: int) -> None:
         """
-        Execute a full AI turn, allowing each AI-controlled unit to act once.
-
-        Args:
-            agent: The AI agent object with a `decide_next_action` method.
-            team2_type (int): The numeric team ID for the AI.
+        Execute a full AI turn for a team using a step-by-step agent
+        that exposes decide_next_action(board_snapshot, team_id).
         """
         ai_units = [
             u
             for u in self.game_board.units
-            if u.team == team2_type and not u.has_acted and u.move_points > EPSILON
+            if u.team_id == team_id and not u.has_acted and u.move_points > EPSILON
         ]
 
         for unit in ai_units:
             while unit.move_points > EPSILON and not unit.has_acted:
-                # Snapshot used for AI decision-making
                 snapshot = self.game_board.get_snapshot()
-                action = agent.decide_next_action(snapshot, team2_type)
+                action = agent.decide_next_action(snapshot, team_id)
 
-                # No available action
                 if not action:
                     unit.has_acted = True
                     break
 
-                # --- Handle AI decisions ---
                 if action["type"] == "move":
                     nx, ny = action["target"]
                     if not self.move_unit(unit, nx, ny):

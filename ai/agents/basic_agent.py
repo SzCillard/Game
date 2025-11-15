@@ -15,19 +15,21 @@ class BasicAgent(BaseAgent):
     ) -> Optional[Dict[str, Any]]:
         """
         board_snapshot: dict returned by GameState.get_snapshot()
-        team: int (TeamType value)
+        team: team_id (1 or 2)
         """
         units = board_snapshot["units"]
+
+        # Use team_id, not TeamType, to distinguish sides
         my_units = [
             u
             for u in units
-            if int(u["team"]) == int(team)
+            if int(u["team_id"]) == int(team)
             and not u["has_acted"]
             and u["move_points"] > 0
         ]
 
         enemy_units = [
-            u for u in units if int(u["team"]) != int(team) and u["health"] > 0
+            u for u in units if int(u["team_id"]) != int(team) and u["health"] > 0
         ]
 
         if not my_units or not enemy_units:

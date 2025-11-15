@@ -4,6 +4,8 @@ from __future__ import annotations
 import copy
 from typing import Any, Optional
 
+from ai.agents.basic_agent import BasicAgent
+from ai.agents.runtime_neat_agent import RuntimeNeatAgent
 from backend.board import GameState
 from backend.logic import GameLogic
 from backend.units import Unit
@@ -20,7 +22,7 @@ class GameAPI:
         renderer: Optional[Renderer],
         game_board: GameState,
         game_logic: GameLogic,
-        agent,
+        agent: Any,
         team1_id: int = 1,
         team2_id: int = 2,
         team1_type: TeamType = TeamType.HUMAN,
@@ -32,15 +34,15 @@ class GameAPI:
         self.game_logic = game_logic
         self.agent = agent
 
-        # Store integer values internally for comparisons
-        self.team1_type = (
-            team1_type.value if isinstance(team1_type, TeamType) else team1_type
-        )
-        self.team2_type = (
-            team2_type.value if isinstance(team2_type, TeamType) else team2_type
-        )
+        # We keep ids in case you want to extend later
+        self.team1_id = team1_id
+        self.team2_id = team2_id
 
-    def clone(self) -> GameAPI:
+        # Store TeamType enums directly; int equality still works (IntEnum)
+        self.team1_type = team1_type
+        self.team2_type = team2_type
+
+    def clone(self) -> "GameAPI":
         return copy.deepcopy(self)
 
     def reset(self, game_board: GameState):
@@ -53,13 +55,33 @@ class GameAPI:
     def check_turn_end(self, team_id: int):
         return self.game_logic.check_turn_end(team_id)
 
-    def run_ai_turn(self, team):
-        return self.game_logic.run_ai_turn(self.agent, team)
+    # ------------------------------
+    # AI Turn Dispatch
+    # ------------------------------
+
+    def run_ai_turn(self, team_id: int):
+        """
+        Route AI turn to the proper implementation:
+        - RuntimeNeatAgent → full-turn DFS+NN
+        - BasicAgent (or BaseAgent-like) → step-by-step via GameLogic.run_ai_turn
+        """
+        if isinstance(self.agent, RuntimeNeatAgent):
+            # NEAT runtime agent plans a whole turn
+            self.agent.play_turn(self, team_id)
+        elif isinstance(self.agent, BasicAgent) or hasattr(
+            self.agent, "decide_next_action"
+        ):
+            # Simple agent: step-wise decisions
+            self.game_logic.run_ai_turn(self.agent, team_id)
+        else:
+            # No agent configured; do nothing
+            return None
 
     def update_damage_timers(self):
         self.game_logic.update_damage_timers()
 
     # --- Queries (frontend can use these) ---
+
     def get_units(self):
         """Return all units (read-only)"""
         return self.game_board.units.copy()
@@ -88,12 +110,10 @@ class GameAPI:
 
     def request_move(self, unit, x, y):
         """Frontend requests a unit move. Returns success boolean."""
-
         return self.game_logic.move_unit(unit, x, y)
 
     def request_attack(self, attacker, target):
         """Frontend requests an attack. Returns True if successful."""
-
         return self.game_logic.apply_attack(attacker, target)
 
     def get_movable_tiles(self, unit):
@@ -102,22 +122,24 @@ class GameAPI:
     def get_attackable_tiles(self, unit):
         return self.game_logic.get_attackable_tiles(unit)
 
-    # TODO: refactor these for universal api apply_action method
-
     def apply_action(self, action):
-        self.game_logic.apply_action(action)
+        return self.game_logic.apply_action(action)
 
     # --- Agent interaction ---
+
     def get_board_snapshot(self) -> dict[str, Any]:
         """Provide a read-only view of the board for AI agents"""
         return self.game_board.get_snapshot()
 
     def get_ai_action(self):
-        """Ask the agent to decide its next action"""
+        """(kept for compatibility with simple agents)"""
         snapshot = self.get_board_snapshot()
-        return self.agent.decide_next_action(snapshot, self.team2_type)
+        if hasattr(self.agent, "decide_next_action"):
+            return self.agent.decide_next_action(snapshot, self.team2_id)
+        return None
 
     # --- UI/Renderer interactions (backend calls these) ---
+
     def start_menu(self, screen, font):
         if not self.game_ui:
             return None
