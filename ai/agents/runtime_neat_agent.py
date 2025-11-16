@@ -4,27 +4,17 @@ from typing import Any, Dict, List
 
 import numpy as np
 
-from ai.agents.dfs_planner import DfsTurnPlanner
 from ai.neat.neat_network import NeatNetwork
-from backend.board import GameState
-from utils.logging import logger
+from ai.planning.full_turn_dfs import FullTurnDFS
 
 
 class RuntimeNeatAgent:
-    """
-    Runtime NEAT agent used when playing Human vs AI.
-
-    Uses the SAME DfsTurnPlanner as training (NeatAgent),
-    but with exploration_rate = 0.0 for deterministic play.
-    """
-
-    def __init__(self, brain: NeatNetwork) -> None:
+    def __init__(self, brain: NeatNetwork):
         self.brain = brain
-        self.planner = DfsTurnPlanner(
-            max_depth=3,
-            max_sets=10,
-            max_branching=8,
-            exploration_rate=0.0,  # no randomness at runtime
+        self.planner = FullTurnDFS(
+            max_sets=12,
+            max_branching=7,
+            exploration_rate=0.0,  # no randomness during gameplay
         )
 
     # ------------------------------
@@ -76,72 +66,28 @@ class RuntimeNeatAgent:
             dtype=float,
         )
 
-    def _eval_state(self, snapshot: Dict[str, Any], team_id: int) -> float:
-        encoded = self._encode_state(snapshot, team_id)
-        prediction = self.brain.predict(encoded)
-        return float(prediction[0])
+    def _eval(self, snapshot, team_id):
+        return float(self.brain.predict(self._encode_state(snapshot, team_id))[0])
 
-    # ------------------------------
-    # Public API used by GameAPI
-    # ------------------------------
-
-    def play_turn(self, game_api: Any, team_id: int) -> None:
-        """
-        Decide and apply a full turn of actions for team_id onto the REAL game_api.
-
-        Semantics:
-        - If NEAT returns actions -> apply them.
-        - If NEAT returns []:
-            * If there are truly no legal actions -> end the turn (mark units as done).
-            * If there ARE legal actions -> log a warning and fall back to
-              explicit 'wait' actions so the turn progresses and the bug is visible.
-        """
-        logger("Neat agent planning turn...")
-
-        real_board: GameState = game_api.game_board
-
-        actions = self.planner.plan_turn(
-            real_board,
+    def play_turn(self, game_api, team_id: int):
+        board = game_api.game_board
+        actions = self.planner.plan(
+            board,
             team_id,
-            eval_fn=lambda snapshot: self._eval_state(snapshot, team_id),
+            eval_fn=lambda snap: self._eval(snap, team_id),
         )
 
-        logger(f"Neat agent chose {len(actions)} actions for this turn")
-
         if not actions:
-            # Inspect the REAL state to see if this is logical.
-            real_legal = game_api.get_legal_actions(team_id)
-            if not real_legal:
-                # No moves at all: it's ok to end the turn.
-                logger(
-                    "Neat agent returned empty plan and there are no legal actions. "
-                    "Ending turn."
-                )
-                for u in game_api.get_units():
-                    if u.team_id == team_id:
-                        u.has_acted = True
-                        u.move_points = 0
-                return
+            # fallback: turn ends or wait-all
+            legal = game_api.get_legal_actions(team_id)
+            if legal:
+                actions = []
+                seen = set()
+                for a in legal:
+                    uid = a["unit_id"]
+                    if uid not in seen:
+                        seen.add(uid)
+                        actions.append({"unit_id": uid, "type": "wait", "target": None})
 
-            # There ARE legal actions, but NEAT gave no plan -> this is a bug/mismatch.
-            logger(
-                f"[WARN] Neat agent returned empty plan "
-                f"but {len(real_legal)} legal actions exist. "
-                "Falling back to explicit waits for all units."
-            )
-
-            # Fallback: make every controllable unit explicitly 'wait'
-            actions = []
-            seen = set()
-            for action in real_legal:
-                uid = action["unit_id"]
-                if uid in seen:
-                    continue
-                seen.add(uid)
-                actions.append({"unit_id": uid, "type": "wait", "target": None})
-
-            logger(f"Fallback generated {len(actions)} wait actions to end the turn.")
-
-        # Apply the chosen (or fallback) actions to the real game
-        for action in actions:
-            game_api.apply_action(action)
+        for act in actions:
+            game_api.apply_action(act)

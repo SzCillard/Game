@@ -4,37 +4,23 @@ from typing import TYPE_CHECKING, Any, Dict, List
 
 import numpy as np
 
-from ai.agents.dfs_planner import DfsTurnPlanner
-from ai.neat.neat_network import NeatNetwork
-
 if TYPE_CHECKING:
-    from api.api import GameAPI
-    from api.headless_api import HeadlessGameAPI
+    pass
+
+
+from ai.planning.full_turn_dfs import FullTurnDFS
 
 
 class NeatAgent:
-    """
-    NEAT-powered agent used during training self-play.
-
-    Uses the shared DfsTurnPlanner so its behaviour matches RuntimeNeatAgent.
-    """
-
-    def __init__(
-        self,
-        max_depth: int = 3,
-        max_sets: int = 10,
-        max_branching: int = 8,
-        exploration_rate: float = 0.2,
-    ) -> None:
-        self.brain: NeatNetwork | None = None
-        self.planner = DfsTurnPlanner(
-            max_depth=max_depth,
+    def __init__(self, max_sets=12, max_branching=7, exploration_rate=0.2):
+        self.brain = None
+        self.planner = FullTurnDFS(
             max_sets=max_sets,
             max_branching=max_branching,
             exploration_rate=exploration_rate,
         )
 
-    def setup_brain(self, brain: NeatNetwork) -> None:
+    def setup_brain(self, brain):
         self.brain = brain
 
     # ------------------------------------------------------------------
@@ -76,38 +62,18 @@ class NeatAgent:
             dtype=np.float32,
         )
 
-    def _eval_state(
-        self, net: NeatNetwork, game_state: Dict[str, Any], team_id: int
-    ) -> float:
-        encoded_state = self._encode_state(game_state, team_id)
-        prediction = net.predict(encoded_state)
-        return float(prediction[0])
+    def _eval(self, net, snapshot, team_id):
+        state = self._encode_state(snapshot, team_id)
+        return float(net.predict(state)[0])
 
-    # ------------------------------------------------------------------
-    # Public: used by SelfPlaySimulator
-    # ------------------------------------------------------------------
-    def execute_next_actions(
-        self,
-        game_api: "GameAPI | HeadlessGameAPI",
-        net: NeatNetwork,
-        team_id: int,
-    ) -> None:
-        """
-        Entry point used by SelfPlaySimulator:
-          - plans one full turn for team_id,
-          - applies actions to the provided game_api.
-        """
-        brain = net if net is not None else self.brain
-        if brain is None:
-            return
+    def execute_next_actions(self, game_api, net, team_id):
+        board = game_api.game_board
 
-        real_board = game_api.game_board
-
-        actions = self.planner.plan_turn(
-            real_board,
+        actions = self.planner.plan(
+            board,
             team_id,
-            eval_fn=lambda snapshot: self._eval_state(brain, snapshot, team_id),
+            eval_fn=lambda snap: self._eval(net, snap, team_id),
         )
 
-        for action in actions:
-            game_api.apply_action(action)
+        for act in actions:
+            game_api.apply_action(act)

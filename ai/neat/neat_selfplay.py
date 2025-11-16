@@ -39,8 +39,7 @@ class SelfPlaySimulator:
 
         # For training, use some exploration
         self.agent = NeatAgent(
-            max_depth=3,
-            max_sets=10,
+            max_sets=12,
             max_branching=8,
             exploration_rate=0.2,
         )

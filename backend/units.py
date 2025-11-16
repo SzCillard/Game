@@ -1,6 +1,6 @@
 # backend/units.py
+import copy
 from abc import ABC
-from copy import copy
 
 from utils.constants import UNIT_STATS, TeamType, UnitType
 
@@ -29,7 +29,7 @@ class Unit(ABC):
         self.y: int = y
         self.team_id: int = team_id
         self.team: TeamType = team
-        self.max_hp: int = health  # set by subclass
+        self.max_hp: int = max_hp  # set by subclass
         self.health: int = health
         self.armor: int = armor
         self.attack_power: int = attack_power
