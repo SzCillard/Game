@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument("--max_workers", type=int, default=4, help="Process pool size.")
 
     parser.add_argument(
-        "--opponents", type=int, default=10, help="Opponents per genome per generation."
+        "--opponents", type=int, default=5, help="Opponents per genome per generation."
     )
 
     parser.add_argument("--elites", type=int, default=5, help="Carryover elite count.")

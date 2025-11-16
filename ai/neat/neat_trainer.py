@@ -142,6 +142,7 @@ class NeatTrainer:
         genome_b.__dict__.update(pickle.loads(g_b_bytes))
 
         sim = SelfPlaySimulator(config, game_api, max_turns=max_turns)
+        print(f"Match between: {gid_a} and {gid_b} starts.")
         winner, played_turns, stats = sim.play_match(genome_a, genome_b)
 
         return gid_a, gid_b, winner, played_turns, stats

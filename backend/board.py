@@ -17,6 +17,7 @@ from typing import Any, List, Optional
 
 from backend.units import Archer, Horseman, Spearman, Swordsman, Unit
 from utils.constants import TERRAIN_MOVE_COST, TeamType, TileType
+from utils.logging import logger
 from variables.variables import evolution_run
 
 # ======================================================================
@@ -48,6 +49,23 @@ class GameState:
         "Horseman": Horseman,
         "Spearman": Spearman,
     }
+
+    def fast_clone(self) -> "GameState":
+        new_gs = GameState(
+            width=self.width,
+            height=self.height,
+            cell_size=self.cell_size,
+            tile_map=[row[:] for row in self.tile_map],
+        )
+
+        # Clone units
+        new_units = []
+        for u in self.units:
+            new_units.append(u.clone_minimal())
+
+        new_gs.units = new_units
+
+        return new_gs
 
     def clone(self):
         return copy.deepcopy(self)
@@ -348,5 +366,5 @@ def create_random_map(w: int, h: int) -> List[List[TileType]]:
 
     map_type = random.choice(list(MAP_GENERATORS.keys()))
     if evolution_run is False:
-        print(f"🌍 Using map type: {map_type}")
+        logger(f"🌍 Using map type: {map_type}")
     return MAP_GENERATORS[map_type](w, h)

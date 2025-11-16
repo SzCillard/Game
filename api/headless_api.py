@@ -1,9 +1,8 @@
 # api/_headless_api.py
 from __future__ import annotations
 
-import copy
-
 from api.api import GameAPI
+from backend.logic import GameLogic
 
 
 class HeadlessGameAPI(GameAPI):
@@ -16,5 +15,7 @@ class HeadlessGameAPI(GameAPI):
             agent=None,
         )
 
-    def clone(self) -> HeadlessGameAPI:
-        return copy.deepcopy(self)
+    def clone(self):
+        new_board = self.game_board.fast_clone()
+        new_logic = GameLogic(new_board)
+        return HeadlessGameAPI(new_board, new_logic)

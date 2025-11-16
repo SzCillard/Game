@@ -44,6 +44,28 @@ class Unit(ABC):
         self.last_damage = 0
         self.damage_timer = 0
 
+    def clone_minimal(self):
+        clone = Unit(
+            name=UnitType[self.name.upper()],
+            x=self.x,
+            y=self.y,
+            team_id=self.team_id,
+            team=self.team,
+            max_hp=self.max_hp,
+            health=self.health,
+            armor=self.armor,
+            attack_power=self.attack_power,
+            attack_range=self.attack_range,
+            move_range=self.move_range,
+        )
+
+        # copy per-turn state
+        clone.move_points = self.move_points
+        clone.has_attacked = self.has_attacked
+        clone.has_acted = self.has_acted
+
+        return clone
+
 
 class Swordsman(Unit):
     def __init__(self, x: int, y: int, team_id: int, team: TeamType):

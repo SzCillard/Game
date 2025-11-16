@@ -26,8 +26,7 @@ class _SimulationAPI:
         self.game_logic: GameLogic = GameLogic(self.game_board)
 
     def clone(self) -> "_SimulationAPI":
-        """Deep copy the board and rebuild GameLogic for the clone."""
-        board_copy = copy.deepcopy(self.game_board)
+        board_copy = self.game_board.fast_clone()
         return _SimulationAPI(board_copy)
 
     # Turn lifecycle
