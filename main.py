@@ -8,7 +8,6 @@ import os
 
 import pygame
 
-from ai.agents.basic_agent import BasicAgent
 from ai.agents.runtime_neat_agent import RuntimeNeatAgent
 from ai.draft_helper import get_ai_draft_units
 from ai.neat.neat_network import NeatNetwork
@@ -85,12 +84,16 @@ def create_game(ui: UI, player_unit_names: list[str]) -> GameAPI:
         game_logic = GameLogic(game_state=game_state)
         game_renderer = ui.renderer
 
-        # --- Choose agent: NEAT if possible, else Basic ---
         neat_agent = create_runtime_neat_agent()
-        if neat_agent is not None:
-            agent = neat_agent
-        else:
-            agent = BasicAgent()
+        if neat_agent is None:
+            # You said you don't want to use BasicAgent anymore.
+            # So if there's no NEAT genome, we abort game creation.
+            raise RuntimeError(
+                "No NEAT genome found (best_genome.pkl). "
+                "Please run NEAT training first to generate one."
+            )
+
+        agent = neat_agent
 
         # --- Combine everything into the API interface ---
         game_api = GameAPI(

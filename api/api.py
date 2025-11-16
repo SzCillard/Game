@@ -4,7 +4,6 @@ from __future__ import annotations
 import copy
 from typing import Any, Optional
 
-from ai.agents.basic_agent import BasicAgent
 from ai.agents.runtime_neat_agent import RuntimeNeatAgent
 from backend.board import GameState
 from backend.logic import GameLogic
@@ -61,20 +60,18 @@ class GameAPI:
 
     def run_ai_turn(self, team_id: int):
         """
-        Route AI turn to the proper implementation:
-        - RuntimeNeatAgent → full-turn DFS+NN
-        - BasicAgent (or BaseAgent-like) → step-by-step via GameLogic.run_ai_turn
+        Route AI turn to the proper implementation.
+        Currently we assume a NEAT-based agent (RuntimeNeatAgent or similar)
+        that exposes a `play_turn(api, team_id)` method.
         """
         if isinstance(self.agent, RuntimeNeatAgent):
-            # NEAT runtime agent plans a whole turn
+            # NEAT runtime agent plans a whole turn internally (and uses NeatAgent)
             self.agent.play_turn(self, team_id)
-        elif isinstance(self.agent, BasicAgent) or hasattr(
-            self.agent, "decide_next_action"
-        ):
-            # Simple agent: step-wise decisions
-            self.game_logic.run_ai_turn(self.agent, team_id)
+        elif hasattr(self.agent, "play_turn"):
+            # Generic NEAT-like agent with a play_turn method
+            self.agent.play_turn(self, team_id)
         else:
-            # No agent configured; do nothing
+            # No compatible agent configured; do nothing
             return None
 
     def update_damage_timers(self):

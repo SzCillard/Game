@@ -1,28 +1,70 @@
 # ai/agents/neat_agent.py
 
-from typing import TYPE_CHECKING, Any
+from __future__ import annotations
+
+import random
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import numpy as np
 
 if TYPE_CHECKING:
+    from ai.neat.neat_network import NeatNetwork
+    from api.api import GameAPI  # for type hints
     from api.headless_api import HeadlessGameAPI
-
-from ai.neat.neat_network import NeatNetwork
 
 
 class NeatAgent:
-    def __init__(self):
-        self.brain = None
+    """
+    NEAT-powered agent that uses a depth-limited DFS over action sequences.
 
-    def setup_brain(self, brain: NeatNetwork):
+    Flow:
+      1. From the current game state, generate up to `max_sets` different
+         action sequences for `team_id` using DFS, limited by:
+           - max_depth: maximum number of actions in a sequence
+           - max_branching: max actions expanded per node
+      2. For each sequence, simulate it on a cloned game state.
+      3. Encode the resulting state into a feature vector.
+      4. Ask the NEAT network to score that state.
+      5. Execute the best-scoring sequence on the real game_api.
+    """
+
+    def __init__(
+        self,
+        max_depth: int = 3,
+        max_sets: int = 10,
+        max_branching: int = 8,
+    ) -> None:
+        self.brain: NeatNetwork | None = None
+        self.max_depth = max_depth
+        self.max_sets = max_sets
+        self.max_branching = max_branching
+
+    # ------------------------------------------------------------------
+    # Brain
+    # ------------------------------------------------------------------
+    def setup_brain(self, brain: NeatNetwork) -> None:
+        """Attach a NEAT network instance."""
         self.brain = brain
 
-    def _encode_state(self, game_state: dict[str, Any], team_id: int) -> np.ndarray:
-        """Extract numerical features for the neural network."""
+    # ------------------------------------------------------------------
+    # State Encoding & Evaluation
+    # ------------------------------------------------------------------
+    def _encode_state(self, game_state: Dict[str, Any], team_id: int) -> np.ndarray:
+        """
+        Extract numerical features for the neural network.
 
+        Current simple feature set (can be extended later):
+          - team_id (1 or 2)
+          - total ally HP (normalized)
+          - total enemy HP (normalized)
+          - ally unit count (normalized)
+          - enemy unit count (normalized)
+          - distance between average ally position and average enemy position
+        """
         units = game_state["units"]
-        ally_units = []
-        enemy_units = []
+        ally_units: List[Dict[str, Any]] = []
+        enemy_units: List[Dict[str, Any]] = []
+
         for u in units:
             if u["team_id"] == team_id:
                 ally_units.append(u)
@@ -32,140 +74,141 @@ class NeatAgent:
         ally_count = len(ally_units)
         enemy_count = len(enemy_units)
 
-        # Corrected dict access
         ally_hp = sum(u["health"] for u in ally_units)
         enemy_hp = sum(u["health"] for u in enemy_units)
 
-        avg_x_ally = np.mean([u["x"] for u in ally_units]) if ally_units else 0
-        avg_y_ally = np.mean([u["y"] for u in ally_units]) if ally_units else 0
-        avg_x_enemy = np.mean([u["x"] for u in enemy_units]) if enemy_units else 0
-        avg_y_enemy = np.mean([u["y"] for u in enemy_units]) if enemy_units else 0
+        avg_x_ally = np.mean([u["x"] for u in ally_units]) if ally_units else 0.0
+        avg_y_ally = np.mean([u["y"] for u in ally_units]) if ally_units else 0.0
+        avg_x_enemy = np.mean([u["x"] for u in enemy_units]) if enemy_units else 0.0
+        avg_y_enemy = np.mean([u["y"] for u in enemy_units]) if enemy_units else 0.0
 
-        dist = np.hypot(avg_x_ally - avg_x_enemy, avg_y_ally - avg_y_enemy)
+        dist = float(np.hypot(avg_x_ally - avg_x_enemy, avg_y_ally - avg_y_enemy))
 
+        # Simple normalization constants (tunable)
         return np.array(
             [
-                team_id,
+                float(team_id),
                 ally_hp / 1000.0,
                 enemy_hp / 1000.0,
                 ally_count / 10.0,
                 enemy_count / 10.0,
                 dist / 20.0,
-            ]
+            ],
+            dtype=np.float32,
         )
 
     def _eval_state(
-        self, net: NeatNetwork, game_state: dict[str, Any], team_id: int
+        self, net: NeatNetwork, game_state: Dict[str, Any], team_id: int
     ) -> float:
-        """Evaluate the game state"""
-
+        """Ask the NEAT network to score a board snapshot."""
         encoded_state = self._encode_state(game_state, team_id)
         prediction = net.predict(encoded_state)
-        return prediction[0]
+        # Assuming predict returns a 1D array-like; take the first output.
+        return float(prediction[0])
 
-    def _get_set_of_actions(
-        self, game_api: "HeadlessGameAPI", team_id: int, max_sets: int = 10
-    ) -> list[list[dict[str, Any]]]:
+    # ------------------------------------------------------------------
+    # DFS Action Sequence Generation
+    # ------------------------------------------------------------------
+    def _generate_action_sequences(
+        self,
+        game_api: "GameAPI | HeadlessGameAPI",
+        team_id: int,
+    ) -> List[List[Dict[str, Any]]]:
         """
-        Generate up to `max_sets` complete action sequences (sets of actions)
-        for the specified team by recursively exploring all legal actions
-        from the current game state using depth-first search.
+        Generate up to `self.max_sets` action sequences for team_id using
+        depth-limited DFS.
 
-        Each resulting sequence represents a full turn of valid actions
-        that can be executed by the given team until no further legal actions
-        are available (i.e., an end-of-turn state is reached).
-
-        The search terminates early once `max_sets` sequences have been found.
-
-        Args:
-            game_api (Any):
-                The game API interface providing methods such as
-                `get_board_snapshot()`, `get_legal_actions(state, team)`,
-                `clone()`, and `apply_action(action)`.
-            team (Any):
-                The team identifier (e.g., `TeamType.HUMAN` or `TeamType.AI`)
-                for which to generate possible action sequences.
-            max_sets (int, optional):
-                The maximum number of complete action sequences to generate.
-                Defaults to 10.
-
-        Returns:
-            list[list[dict[str, Any]]]:
-                A list of action sets, where each action set is a list of
-                action dictionaries representing one full sequence of
-                valid actions for the given team.
+        Constraints:
+          - Depth limited by self.max_depth (max number of actions).
+          - At each node, only explore up to self.max_branching actions.
+          - A sequence ends when:
+              * depth == max_depth, or
+              * check_turn_end(team_id) is True, or
+              * there are no legal actions.
         """
-        result_sets = []
+        result_sets: List[List[Dict[str, Any]]] = []
 
         def dfs(
-            current_actions: list[dict[str, Any]], api_clone: "HeadlessGameAPI"
+            api_state: "GameAPI | HeadlessGameAPI",
+            depth: int,
+            current_actions: List[Dict[str, Any]],
         ) -> None:
-            """
-            Recursive depth-first search helper for exploring all possible
-            sequences of legal actions from a given game state.
-
-            This function builds action sequences by repeatedly:
-            1. Querying legal actions from the current cloned game state.
-            2. Applying each possible action on a deep clone of the state.
-            3. Recursing until no further legal actions remain (i.e., end of turn).
-
-            Once a leaf node (no legal actions) is reached, the full sequence
-            of actions leading to that state is added to the global result set.
-
-            Args:
-                current_actions (list[dict[str, Any]]):
-                    The list of actions taken so far in the current sequence.
-                api_clone (Any):
-                    A cloned instance of the game API representing the current
-                    simulated game state.
-            """
-            # Stop if we've collected enough sets
-            if len(result_sets) >= max_sets:
+            # Stop if we already collected enough sequences
+            if len(result_sets) >= self.max_sets:
                 return
 
-            # Get all legal actions for this team
-            legal_actions = api_clone.get_legal_actions(team_id)
-
-            # If there are no actions left (leaf)
-            if not legal_actions or api_clone.check_turn_end(team_id):
-                result_sets.append(current_actions)
+            # If turn is over or depth limit reached, record this sequence
+            if depth >= self.max_depth or api_state.check_turn_end(team_id):
+                result_sets.append(list(current_actions))
                 return
 
-            # For each action, simulate and recurse
+            legal_actions = api_state.get_legal_actions(team_id)
+
+            # No actions: treat this as a leaf sequence
+            if not legal_actions:
+                result_sets.append(list(current_actions))
+                return
+
+            # Randomize & prune branching factor
+            random.shuffle(legal_actions)
+            if len(legal_actions) > self.max_branching:
+                legal_actions = legal_actions[: self.max_branching]
+
             for action in legal_actions:
-                if len(result_sets) >= max_sets:
-                    break  # width limit reached
+                if len(result_sets) >= self.max_sets:
+                    break
 
-                # Clone the state
-                next_clone = api_clone.clone()
-
-                # Try to apply the action
-                success = next_clone.apply_action(action)
+                next_state = api_state.clone()
+                success = next_state.apply_action(action)
                 if not success:
                     continue
 
-                # Continue DFS deeper
-                dfs(current_actions + [action], next_clone)
+                dfs(
+                    next_state,
+                    depth + 1,
+                    current_actions + [action],
+                )
 
-        # Start exploration from the initial game state
-        dfs([], game_api)
+        # Start DFS from a clone of the current state so we never mutate the real game
+        dfs(game_api.clone(), 0, [])
+
+        # Guarantee at least one (possibly empty) sequence
+        if not result_sets:
+            result_sets.append([])
 
         return result_sets
 
+    # ------------------------------------------------------------------
+    # Utilities: simulate & choose best sequence
+    # ------------------------------------------------------------------
     def _simulate_actions(
-        self, game_api: "HeadlessGameAPI", actions: list[dict[str, Any]]
-    ):
+        self,
+        game_api: "GameAPI | HeadlessGameAPI",
+        actions: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Simulate the given action sequence on a cloned game_api and return
+        the resulting board snapshot.
+        """
         api_clone = game_api.clone()
         for action in actions:
             api_clone.apply_action(action)
         return api_clone.get_board_snapshot()
 
     def _get_next_actions(
-        self, game_api: "HeadlessGameAPI", net: NeatNetwork, team_id
-    ) -> list[dict]:
-        all_action_sets = self._get_set_of_actions(game_api, team_id)
+        self,
+        game_api: "GameAPI | HeadlessGameAPI",
+        net: NeatNetwork,
+        team_id: int,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate candidate action sequences with DFS, score each resulting
+        state with the NEAT network, and return the best action sequence.
+        """
+        all_action_sets = self._generate_action_sequences(game_api, team_id)
+
         best_score = -1e9
-        best_set = []
+        best_set: List[Dict[str, Any]] = []
 
         for actions in all_action_sets:
             new_state = self._simulate_actions(game_api, actions)
@@ -176,27 +219,44 @@ class NeatAgent:
 
         return best_set
 
+    # ------------------------------------------------------------------
+    # Public: execute chosen actions on the real game_api
+    # ------------------------------------------------------------------
     def execute_next_actions(
-        self, game_api: "HeadlessGameAPI", net: NeatNetwork, team_id: int
-    ):
-        actions = self._get_next_actions(game_api, net, team_id)
+        self,
+        game_api: "GameAPI | HeadlessGameAPI",
+        net: NeatNetwork,
+        team_id: int,
+    ) -> None:
+        """
+        Entry point used by SelfPlaySimulator & runtime agents:
+          - Picks the best sequence of actions using DFS+NN.
+          - Applies them to the real game_api.
+        """
+        if net is None and self.brain is None:
+            # No brain attached; do nothing
+            return
+
+        brain = net if net is not None else self.brain
+        actions = self._get_next_actions(game_api, brain, team_id)
         for action in actions:
             game_api.apply_action(action)
 
+    # ------------------------------------------------------------------
+    # (Optional) Greedy single-step chooser kept as reference:
+    # ------------------------------------------------------------------
     """
-    def choose_actions_greedily(self, game_api, net, team):
-        state = game_api.get_board_snapshot()
-        legal_actions = game_api.get_legal_actions(state, team)
+    def choose_actions_greedily(self, game_api, net, team_id):
+        snapshot = game_api.get_board_snapshot()
+        legal_actions = game_api.get_legal_actions(team_id)
         best_action = None
         best_score = -float("inf")
 
         for action in legal_actions:
             clone = game_api.clone()
             clone.apply_action(action)
-
             new_state = clone.get_board_snapshot()
-            score = self.eval_state(net, new_state, team)
-
+            score = self._eval_state(net, new_state, team_id)
             if score > best_score:
                 best_score = score
                 best_action = action
