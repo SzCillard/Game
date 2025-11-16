@@ -51,21 +51,7 @@ class GameState:
     }
 
     def fast_clone(self) -> "GameState":
-        new_gs = GameState(
-            width=self.width,
-            height=self.height,
-            cell_size=self.cell_size,
-            tile_map=[row[:] for row in self.tile_map],
-        )
-
-        # Clone units
-        new_units = []
-        for u in self.units:
-            new_units.append(u.clone_minimal())
-
-        new_gs.units = new_units
-
-        return new_gs
+        return copy.deepcopy(self)
 
     def clone(self):
         return copy.deepcopy(self)
