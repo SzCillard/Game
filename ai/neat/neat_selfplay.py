@@ -73,10 +73,6 @@ class SelfPlaySimulator:
         self.match_api.add_units(team1_draft_names, team_id=1, team=TeamType.AI)
         self.match_api.add_units(team2_draft_names, team_id=2, team=TeamType.AI)
 
-        # Turn-begin reset for both teams so move_points/flags are correct
-        self.match_api.turn_begin_reset(1)
-        self.match_api.turn_begin_reset(2)
-
     # ------------------------------------------------------------------
     # Helper: compute summary stats for fitness
     # ------------------------------------------------------------------
@@ -108,31 +104,25 @@ class SelfPlaySimulator:
     # ------------------------------------------------------------------
     # Main match loop
     # ------------------------------------------------------------------
-    def play_match(
-        self,
-        genome_a,
-        genome_b,
-    ):
+    def play_match(self, genome_a, genome_b):
         self._setup_match()
 
-        # Guarantee for the type checker
-        assert self.match_api is not None
-
-        # Create neural nets from genomes
         net_a = NeatNetwork.from_genome(genome_a, self.config)
         net_b = NeatNetwork.from_genome(genome_b, self.config)
 
         turns_played = 0
 
         for t in range(self.max_turns):
-            # Team 1
+            # --- Team 1 turn ---
+            self.match_api.turn_begin_reset(1)
             self.agent.execute_next_actions(self.match_api, net_a, team_id=1)
             if self.match_api.is_game_over():
                 turns_played = t + 1
                 stats = self._compute_stats()
                 return self.match_api.get_winner(), turns_played, stats
 
-            # Team 2
+            # --- Team 2 turn ---
+            self.match_api.turn_begin_reset(2)
             self.agent.execute_next_actions(self.match_api, net_b, team_id=2)
             if self.match_api.is_game_over():
                 turns_played = t + 1
@@ -141,7 +131,6 @@ class SelfPlaySimulator:
 
             turns_played = t + 1
 
-        # Game ended by turn limit
         stats = self._compute_stats()
         winner = self.match_api.get_winner()
         return winner, turns_played, stats
