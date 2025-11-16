@@ -31,7 +31,6 @@ class _SimulationAPI:
 
     # Turn lifecycle
     def start_team_turn(self, team_id: int) -> None:
-        self.game_logic.turn_begin_reset(team_id)
         self.game_logic.update_damage_timers()
 
     # Action interface
