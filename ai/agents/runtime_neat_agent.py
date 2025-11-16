@@ -14,24 +14,23 @@ class RuntimeNeatAgent:
     """
     Runtime NEAT agent used when playing Human vs AI.
 
-    Uses:
-      - Shared DfsTurnPlanner for full-turn search
-      - NEAT network (best genome) as a state evaluator
+    Uses the SAME DfsTurnPlanner as training (NeatAgent),
+    but with exploration_rate = 0.0 for deterministic play.
     """
 
     def __init__(self, brain: NeatNetwork) -> None:
         self.brain = brain
-        # No exploration at runtime – make behaviour deterministic
         self.planner = DfsTurnPlanner(
             max_depth=3,
             max_sets=10,
             max_branching=8,
-            exploration_rate=0.0,
+            exploration_rate=0.0,  # no randomness at runtime
         )
 
     # ------------------------------
     # State encoding / evaluation
     # ------------------------------
+
     def _encode_state(self, game_state: Dict[str, Any], team_id: int) -> np.ndarray:
         units = game_state["units"]
         ally_units = [u for u in units if int(u["team_id"]) == int(team_id)]
@@ -53,7 +52,7 @@ class RuntimeNeatAgent:
         avg_x_ally, avg_y_ally = _avg_xy(ally_units)
         avg_x_enemy, avg_y_enemy = _avg_xy(enemy_units)
 
-        dist = float(np.hypot(avg_x_ally - avg_x_enemy, avg_y_ally - avg_y_enemy))
+        dist = np.hypot(avg_x_ally - avg_x_enemy, avg_y_ally - avg_y_enemy)
 
         return np.array(
             [
@@ -75,11 +74,14 @@ class RuntimeNeatAgent:
     # ------------------------------
     # Public API used by GameAPI
     # ------------------------------
+
     def play_turn(self, game_api: Any, team_id: int) -> None:
         """
         Decide and apply a full turn of actions for team_id onto the REAL game_api.
         """
+
         logger("Neat agent planning turn...")
+
         real_board: GameState = game_api.game_board
 
         actions = self.planner.plan_turn(
@@ -87,7 +89,40 @@ class RuntimeNeatAgent:
             team_id,
             eval_fn=lambda snapshot: self._eval_state(snapshot, team_id),
         )
+
         logger(f"Neat agent chose {len(actions)} actions for this turn")
+
+        if not actions:
+            # Same safety logic you already added:
+            real_legal = game_api.get_legal_actions(team_id)
+            if not real_legal:
+                logger(
+                    "Neat agent returned empty plan and there are no legal actions. "
+                    "Ending turn."
+                )
+                for u in game_api.get_units():
+                    if u.team_id == team_id:
+                        u.has_acted = True
+                        u.move_points = 0
+                return
+
+            logger(
+                f"[WARN] Neat agent returned empty plan "
+                f"but {len(real_legal)} legal actions exist. "
+                "Falling back to explicit waits for all units."
+            )
+
+            # Fallback: explicit waits
+            actions = []
+            seen = set()
+            for action in real_legal:
+                uid = action["unit_id"]
+                if uid in seen:
+                    continue
+                seen.add(uid)
+                actions.append({"unit_id": uid, "type": "wait", "target": None})
+
+            logger(f"Fallback generated {len(actions)} wait actions to end the turn.")
 
         for action in actions:
             game_api.apply_action(action)
