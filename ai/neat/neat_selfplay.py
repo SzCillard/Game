@@ -1,6 +1,6 @@
-# ai/neat/neat_selfplay.py
+from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from ai.agents.neat_agent import NeatAgent
 from ai.draft_helper import get_ai_draft_units
@@ -8,21 +8,55 @@ from ai.neat.neat_network import NeatNetwork
 
 if TYPE_CHECKING:
     from api.headless_api import HeadlessGameAPI
+
 from backend.board import GameState, create_random_map
 from utils.constants import TeamType
 
 
 class SelfPlaySimulator:
     """
-    Simulates a match between two NEAT agents using your existing game logic.
+    Simulates a match between two NEAT agents (genome A vs genome B)
+    using the existing game logic and a headless API.
+
+    The simulator:
+      - Creates a fresh random map for each match.
+      - Drafts AI units for both teams.
+      - Runs turn-based self-play using a DFS+NN agent.
+      - Returns winner, number of turns played, and summary stats
+        for both teams (HP, unit counts).
     """
 
-    def __init__(self, config, match_api: "HeadlessGameAPI"):
+    def __init__(
+        self,
+        config,
+        base_api: "HeadlessGameAPI",
+        max_turns: int = 40,
+    ) -> None:
         self.config = config
-        self.match_api = match_api.clone()
-        self.agent = NeatAgent()
+        # we always work on a fresh clone to avoid cross-match contamination
+        self.base_api = base_api
+        self.max_turns = max_turns
 
-    def setup_match(self):
+        # For training, use some exploration
+        self.agent = NeatAgent(
+            max_depth=3,
+            max_sets=10,
+            max_branching=8,
+            exploration_rate=0.2,
+        )
+
+        self.match_api: HeadlessGameAPI = self.base_api.clone()
+
+    # ------------------------------------------------------------------
+    # Match setup
+    # ------------------------------------------------------------------
+    def _setup_match(self) -> None:
+        """
+        Create a new random map and draft units for both teams.
+        """
+        # Clone the headless API so we have fresh GameLogic + GameState wrapper
+        self.match_api = self.base_api.clone()
+
         # Create new game board
         game_board = GameState(
             width=8,
@@ -32,27 +66,82 @@ class SelfPlaySimulator:
         )
         self.match_api.reset(game_board=game_board)
 
-        # Add AI units for both teams
+        # Add AI units for both teams (keep your current draft logic)
         team1_draft_names = get_ai_draft_units(funds=100)
         team2_draft_names = get_ai_draft_units(funds=100)
 
         self.match_api.add_units(team1_draft_names, team_id=1, team=TeamType.AI)
         self.match_api.add_units(team2_draft_names, team_id=2, team=TeamType.AI)
 
-    def play_match(self, genome_a, genome_b):
-        self.setup_match()
+        # Turn-begin reset for both teams so move_points/flags are correct
+        self.match_api.turn_begin_reset(1)
+        self.match_api.turn_begin_reset(2)
 
-        # Create neural nets
+    # ------------------------------------------------------------------
+    # Helper: compute summary stats for fitness
+    # ------------------------------------------------------------------
+    def _compute_stats(self) -> Dict[str, Any]:
+        """
+        Compute simple summary statistics for both teams:
+          - total HP per team
+          - alive unit counts per team
+        """
+        snapshot = self.match_api.get_board_snapshot()
+        units = snapshot["units"]
+
+        team1 = [u for u in units if u["team_id"] == 1]
+        team2 = [u for u in units if u["team_id"] == 2]
+
+        hp1 = sum(u["health"] for u in team1)
+        hp2 = sum(u["health"] for u in team2)
+
+        alive1 = len(team1)
+        alive2 = len(team2)
+
+        return {
+            "hp1": hp1,
+            "hp2": hp2,
+            "alive1": alive1,
+            "alive2": alive2,
+        }
+
+    # ------------------------------------------------------------------
+    # Main match loop
+    # ------------------------------------------------------------------
+    def play_match(
+        self,
+        genome_a,
+        genome_b,
+    ):
+        self._setup_match()
+
+        # Guarantee for the type checker
+        assert self.match_api is not None
+
+        # Create neural nets from genomes
         net_a = NeatNetwork.from_genome(genome_a, self.config)
         net_b = NeatNetwork.from_genome(genome_b, self.config)
 
-        # Run self-play loop using this isolated match_api
-        max_turns = 30
-        for counter in range(max_turns):
-            for team_id, net in [(1, net_a), (2, net_b)]:
-                self.agent.execute_next_actions(self.match_api, net, team_id)
+        turns_played = 0
 
-                if self.match_api.is_game_over():
-                    return self.match_api.get_winner(), counter
+        for t in range(self.max_turns):
+            # Team 1
+            self.agent.execute_next_actions(self.match_api, net_a, team_id=1)
+            if self.match_api.is_game_over():
+                turns_played = t + 1
+                stats = self._compute_stats()
+                return self.match_api.get_winner(), turns_played, stats
 
-        return self.match_api.get_winner(), counter
+            # Team 2
+            self.agent.execute_next_actions(self.match_api, net_b, team_id=2)
+            if self.match_api.is_game_over():
+                turns_played = t + 1
+                stats = self._compute_stats()
+                return self.match_api.get_winner(), turns_played, stats
+
+            turns_played = t + 1
+
+        # Game ended by turn limit
+        stats = self._compute_stats()
+        winner = self.match_api.get_winner()
+        return winner, turns_played, stats
