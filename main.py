@@ -10,7 +10,7 @@ import pygame
 
 from ai.agents.runtime_neat_agent import RuntimeNeatAgent
 from ai.neat.neat_network import NeatNetwork
-from ai.other.draft_helper import get_ai_draft_units
+from ai.utils.draft_helper import get_ai_draft_units
 from api.api import GameAPI
 from backend.board import GameState, create_random_map
 from backend.game_engine import GameEngine

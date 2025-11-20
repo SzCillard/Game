@@ -11,7 +11,7 @@ class RuntimeNeatAgent:
         self.planner = FullTurnDFS(
             max_sets=30,
             max_branching=10,
-            exploration_rate=0.2,  # no randomness during gameplay
+            exploration_rate=0.0,
         )
 
     # ------------------------------

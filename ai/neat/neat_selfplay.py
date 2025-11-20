@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from ai.agents.neat_agent import NeatAgent
 from ai.neat.neat_network import NeatNetwork
-from ai.other.draft_helper import get_ai_draft_units
+from ai.utils.draft_helper import get_ai_draft_units
 
 if TYPE_CHECKING:
     from api.headless_api import HeadlessGameAPI
