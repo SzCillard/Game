@@ -30,7 +30,7 @@ class SelfPlaySimulator:
         self,
         config,
         base_api: "HeadlessGameAPI",
-        max_turns: int = 40,
+        max_turns: int,
     ) -> None:
         self.config = config
         # we always work on a fresh clone to avoid cross-match contamination

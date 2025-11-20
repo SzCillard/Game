@@ -1,4 +1,4 @@
-# api/_headless_api.py
+# api/headless_api.py
 from __future__ import annotations
 
 from api.api import GameAPI

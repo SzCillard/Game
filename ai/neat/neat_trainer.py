@@ -33,6 +33,7 @@ class NeatTrainer:
         game_api: "HeadlessGameAPI",
         opponents_per_genome: int,
         max_workers: int,
+        max_turns: int,
     ) -> None:
         self.config_path = config_path
         self.config = neat.Config(
@@ -47,7 +48,7 @@ class NeatTrainer:
         self.max_workers = max_workers
         self.opponents_per_genome = opponents_per_genome
         # trainer-level elitism removed – NEAT handles elitism internally
-        self.max_turns = 40
+        self.max_turns = max_turns
 
     # ============================================================
     # 🎯 Fitness Function
@@ -186,7 +187,7 @@ class NeatTrainer:
     # ============================================================
     # 🚀 Evolution Loop
     # ============================================================
-    def run(self, generations: int = 50):
+    def run(self, generations: int):
         """Run NEAT evolution with self-play."""
         pop = neat.Population(self.config)
         pop.add_reporter(neat.StdOutReporter(True))

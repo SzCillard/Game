@@ -18,7 +18,7 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--generations", type=int, default=10, help="Number of generations to train."
+        "--generations", type=int, default=15, help="Number of generations to train."
     )
 
     parser.add_argument(
@@ -35,7 +35,7 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--max_turns", type=int, default=40, help="Max turns per match."
+        "--max_turns", type=int, default=30, help="Max turns per match."
     )
 
     return parser.parse_args()
@@ -65,6 +65,7 @@ def main():
         game_api=headless_api,
         max_workers=args.max_workers,
         opponents_per_genome=args.opponents,
+        max_turns=args.max_turns,
     )
 
     trainer.max_turns = args.max_turns
