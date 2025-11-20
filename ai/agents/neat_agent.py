@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ai.planning.nn_utils import encode_state
+from ai.utils.nn_utils import encode_state
 
 if TYPE_CHECKING:
     pass

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ai.neat.neat_network import NeatNetwork
 from ai.planning.full_turn_dfs import FullTurnDFS
-from ai.planning.nn_utils import encode_state
+from ai.utils.nn_utils import encode_state
 
 
 class RuntimeNeatAgent:

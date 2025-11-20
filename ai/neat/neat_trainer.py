@@ -47,7 +47,6 @@ class NeatTrainer:
         self.base_game_api = game_api
         self.max_workers = max_workers
         self.opponents_per_genome = opponents_per_genome
-        # trainer-level elitism removed – NEAT handles elitism internally
         self.max_turns = max_turns
 
     # ============================================================
