@@ -1,17 +1,17 @@
 [NEAT]
 fitness_criterion     = max
 fitness_threshold     = 1000.0
-pop_size = 30
+pop_size = 10
 reset_on_extinction   = False
 
 [DefaultGenome]
-num_inputs            = 6
+num_inputs            = 17
 num_outputs           = 1
-num_hidden            = 0
+num_hidden            = 6
 feed_forward          = True
-activation_default    = tanh
+activation_default    = sigmoid
 activation_mutate_rate= 0.0
-activation_options    = tanh
+activation_options    = sigmoid
 aggregation_default   = sum
 aggregation_mutate_rate=0.0
 aggregation_options   = sum
@@ -51,7 +51,7 @@ compatibility_threshold = 3.0
 
 [DefaultStagnation]
 species_fitness_func = max
-max_stagnation       = 20
+max_stagnation       = 15
 species_elitism      = 2
 
 [DefaultReproduction]

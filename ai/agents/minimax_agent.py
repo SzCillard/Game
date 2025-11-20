@@ -2,9 +2,9 @@
 from typing import Any
 
 import numpy as np
-from minimax import minimax
 
 from ai.neat.neat_network import NeatNetwork
+from ai.planning.minimax import minimax
 from utils.constants import TeamType
 
 

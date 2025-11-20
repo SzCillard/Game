@@ -24,7 +24,7 @@ def parse_args():
     parser.add_argument(
         "--population_size",
         type=int,
-        default=None,
+        default=10,
         help="Override NEAT config population size.",
     )
 
@@ -33,8 +33,6 @@ def parse_args():
     parser.add_argument(
         "--opponents", type=int, default=5, help="Opponents per genome per generation."
     )
-
-    parser.add_argument("--elites", type=int, default=5, help="Carryover elite count.")
 
     parser.add_argument(
         "--max_turns", type=int, default=40, help="Max turns per match."
@@ -67,7 +65,6 @@ def main():
         game_api=headless_api,
         max_workers=args.max_workers,
         opponents_per_genome=args.opponents,
-        carryover_elite_count=args.elites,
     )
 
     trainer.max_turns = args.max_turns
