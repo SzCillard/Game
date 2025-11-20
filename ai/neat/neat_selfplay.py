@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
 from ai.agents.neat_agent import NeatAgent
-from ai.draft_helper import get_ai_draft_units
 from ai.neat.neat_network import NeatNetwork
+from ai.other.draft_helper import get_ai_draft_units
 
 if TYPE_CHECKING:
     from api.headless_api import HeadlessGameAPI
@@ -75,7 +75,7 @@ class SelfPlaySimulator:
     # ------------------------------------------------------------------
     # Helper: compute summary stats for fitness
     # ------------------------------------------------------------------
-    def _compute_stats(self) -> Dict[str, Any]:
+    def _compute_stats(self) -> dict[str, float]:
         """
         Compute simple summary statistics for both teams:
           - total HP per team
@@ -88,16 +88,29 @@ class SelfPlaySimulator:
         team2 = [u for u in units if u["team_id"] == 2]
 
         hp1 = sum(u["health"] for u in team1)
+        if hp1 == 0:
+            hp1 = 1
         hp2 = sum(u["health"] for u in team2)
+        if hp2 == 0:
+            hp2 = 1
 
-        alive1 = len(team1)
-        alive2 = len(team2)
+        # gets a small value due to division by 0
+        alive1 = len(team1) if len(team1) > 0 else 0.1
+        alive2 = len(team2) if len(team2) > 0 else 0.1
+        alive1_ratio = alive1 / alive2
+        alive2_ratio = alive2 / alive1
+
+        hp1_ratio = hp1 / hp2
+        hp2_ratio = hp2 / hp1
+
+        # turn_ratio = min(max(played_turns / max_turns, 0.0), 1.0)
+        # speed_factor = 1.0 - turn_ratio
 
         return {
-            "hp1": hp1,
-            "hp2": hp2,
-            "alive1": alive1,
-            "alive2": alive2,
+            "alive1_ratio": alive1_ratio,
+            "alive2_ratio": alive2_ratio,
+            "hp1_ratio": hp1_ratio,
+            "hp2_ratio": hp2_ratio,
         }
 
     # ------------------------------------------------------------------

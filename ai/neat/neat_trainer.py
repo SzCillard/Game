@@ -32,8 +32,7 @@ class NeatTrainer:
         config_path: str,
         game_api: "HeadlessGameAPI",
         opponents_per_genome: int,
-        max_workers: int = 4,
-        carryover_elite_count: int | None = None,  # kept for CLI compatibility, unused
+        max_workers: int,
     ) -> None:
         self.config_path = config_path
         self.config = neat.Config(
@@ -48,7 +47,6 @@ class NeatTrainer:
         self.max_workers = max_workers
         self.opponents_per_genome = opponents_per_genome
         # trainer-level elitism removed – NEAT handles elitism internally
-        self.carryover_elite_count = carryover_elite_count
         self.max_turns = 40
 
     # ============================================================
@@ -60,52 +58,11 @@ class NeatTrainer:
         played_turns: int,
         max_turns: int,
         stats: Dict[str, Any],
-    ) -> Tuple[float, float]:
-        """
-        Compute fitness for the two genomes in a match.
+    ) -> tuple[float, float]:
+        fitness1 = stats["hp1_ratio"] * 10 + stats["alive1_ratio"]
+        fitness2 = stats["hp2_ratio"] * 10 + stats["alive2_ratio"]
 
-        Inputs:
-          - winner: 1, 2, 0 (draw) or None
-          - played_turns: how many full rounds were played
-          - max_turns: upper limit for turns in this match
-          - stats: dict with hp1, hp2, alive1, alive2
-
-        Returns:
-          (fitness_for_genome_a, fitness_for_genome_b)
-
-        Design:
-          - HP advantage and unit-count advantage matter.
-          - Win/loss gives a strong bonus.
-          - Faster wins are better (speed bonus).
-          - Fitness is zero-sum: f_a = +X, f_b = -X.
-        """
-        hp1 = stats.get("hp1", 0)
-        hp2 = stats.get("hp2", 0)
-        alive1 = stats.get("alive1", 0)
-        alive2 = stats.get("alive2", 0)
-
-        # Advantage terms
-        hp_adv = (hp1 - hp2) * 0.1  # HP difference
-        unit_adv = (alive1 - alive2) * 3.0  # unit count difference
-
-        # Win/loss term
-        if winner == 1:
-            sign = 1.0
-        elif winner == 2:
-            sign = -1.0
-        else:
-            sign = 0.0  # draw or undecided
-
-        # Speed factor (1 at instant win, 0 at max_turns)
-        turn_ratio = min(max(played_turns / max_turns, 0.0), 1.0)
-        speed_factor = 1.0 - turn_ratio
-
-        win_bonus = sign * 100.0 * (1.0 + speed_factor)
-
-        total_adv = hp_adv + unit_adv + win_bonus
-
-        # Zero-sum: what one gains, the other loses
-        return total_adv, -total_adv
+        return fitness1, fitness2
 
     # ============================================================
     # ⚔️ Match Execution (worker-side)
@@ -117,7 +74,7 @@ class NeatTrainer:
         genome_a_data: Tuple[int, bytes],
         genome_b_data: Tuple[int, bytes],
         max_turns: int,
-    ) -> Tuple[int, int, int | None, int, Dict[str, Any]]:
+    ) -> tuple[int, int, int | None, int, dict[str, float]]:
         """
         Runs a single match in an isolated process.
 
