@@ -60,17 +60,6 @@ class GameLogic:
         return tiles
 
     def can_move(self, unit: Unit, to_x: int, to_y: int) -> bool:
-        """
-        Determine if a unit can move to a target tile.
-
-        Args:
-            unit (Unit): The unit attempting to move.
-            to_x (int): Target x-coordinate.
-            to_y (int): Target y-coordinate.
-
-        Returns:
-            bool: True if the move is valid, False otherwise.
-        """
         # --- Boundary and occupancy checks ---
         if not self.game_board.in_bounds(to_x, to_y):
             return False
@@ -81,22 +70,19 @@ class GameLogic:
         if unit.has_attacked:  # cannot move after attacking
             return False
 
-        # --- Pathfinding-based cost check ---
-        cost = compute_min_cost_gs(self.game_board, (unit.x, unit.y), (to_x, to_y))
-        return cost <= unit.move_points
+        # --- Cost check ---
+        # Fast path: single-tile move (what AI / DFS uses)
+        if manhattan(unit.x, unit.y, to_x, to_y) == 1:
+            step_cost = self.game_board.move_cost(to_x, to_y)
+        else:
+            # Fallback for human long-click pathing
+            step_cost = compute_min_cost_gs(
+                self.game_board, (unit.x, unit.y), (to_x, to_y)
+            )
+
+        return step_cost <= unit.move_points
 
     def move_unit(self, unit: Unit, to_x: int, to_y: int) -> bool:
-        """
-        Move a unit to a target location if possible.
-
-        Args:
-            unit (Unit): The unit to move.
-            to_x (int): Destination x-coordinate.
-            to_y (int): Destination y-coordinate.
-
-        Returns:
-            bool: True if movement succeeded, False otherwise.
-        """
         if not self.can_move(unit, to_x, to_y):
             logger(
                 f"""{unit.name} (ID:{unit.id}) unit of
@@ -104,20 +90,17 @@ class GameLogic:
             )
             return False
 
-        cost = compute_min_cost_gs(self.game_board, (unit.x, unit.y), (to_x, to_y))
-        if cost > unit.move_points:
-            logger(
-                f"""{unit.name} (ID:{unit.id}) unit of
-                team:{unit.team} does not have enough movement points."""
-            )
-            return False
+        # Same cost logic as in can_move
+        if manhattan(unit.x, unit.y, to_x, to_y) == 1:
+            cost = self.game_board.move_cost(to_x, to_y)
+        else:
+            cost = compute_min_cost_gs(self.game_board, (unit.x, unit.y), (to_x, to_y))
 
         # --- Execute move ---
         unit.x = to_x
         unit.y = to_y
         unit.move_points = max(0.0, round(unit.move_points - cost, 3))
 
-        # Automatically mark unit as done if no movement points left
         if unit.move_points <= EPSILON:
             unit.has_acted = True
 
