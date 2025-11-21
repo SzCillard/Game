@@ -87,6 +87,9 @@ class GameAPI:
         """Return the unit at (x,y) or None if empty"""
         return self.game_board.get_unit_at(x, y)
 
+    def get_unit_by_id(self, id: int) -> Optional[Unit]:
+        return self.game_board.get_unit_by_id(id)
+
     def add_units(
         self, unit_name_list: list[str], team_id: int, team: TeamType
     ) -> None:
