@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from ai.neat.neat_network import NeatNetwork
-from ai.planning.full_turn_dfs import FullTurnDFS
+from ai.planning.action_planning import ActionPlanner
 from ai.utils.nn_utils import encode_state
 
 
 class RuntimeNeatAgent:
     def __init__(self, brain: NeatNetwork):
         self.brain = brain
-        self.planner = FullTurnDFS(
+        self.planner = ActionPlanner(
             max_sets=500,
             max_branching=40,
             exploration_rate=0.0,

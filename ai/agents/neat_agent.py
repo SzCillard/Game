@@ -8,13 +8,13 @@ if TYPE_CHECKING:
     pass
 
 
-from ai.planning.full_turn_dfs import FullTurnDFS
+from ai.planning.action_planning import ActionPlannerReversible
 
 
 class NeatAgent:
-    def __init__(self, max_sets, max_branching, exploration_rate):
+    def __init__(self, max_sets=100, max_branching=12, exploration_rate=0.05):
         self.brain = None
-        self.planner = FullTurnDFS(
+        self.planner = ActionPlannerReversible(
             max_sets=max_sets,
             max_branching=max_branching,
             exploration_rate=exploration_rate,

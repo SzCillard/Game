@@ -29,11 +29,7 @@ class SelfPlaySimulator:
         self.base_api = base_api
         self.max_turns = max_turns
 
-        self.agent = NeatAgent(
-            max_sets=100,
-            max_branching=20,
-            exploration_rate=0.2,
-        )
+        self.agent = NeatAgent()
 
         self.match_api: HeadlessGameAPI = self.base_api.clone()
 
