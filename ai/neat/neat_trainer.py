@@ -3,9 +3,9 @@ from __future__ import annotations
 import pickle
 import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from typing import Any, Dict, Tuple
 
 import neat
+import numpy as np
 
 from ai.neat.neat_selfplay import SelfPlaySimulator
 from api.headless_api import HeadlessGameAPI
@@ -52,17 +52,36 @@ class NeatTrainer:
     # ============================================================
     # 🎯 Fitness Function
     # ============================================================
-    def compute_fitness(
-        self,
-        winner: int | None,
-        played_turns: int,
-        max_turns: int,
-        stats: Dict[str, Any],
-    ) -> tuple[float, float]:
-        fitness1 = stats["hp1_ratio"] * 10 + stats["alive1_ratio"]
-        fitness2 = stats["hp2_ratio"] * 10 + stats["alive2_ratio"]
 
-        return fitness1, fitness2
+    # --- 3. Sigmoid scaling ---
+    def sigmoid(self, x, k=1.0) -> float:
+        return 1.0 / (1.0 + np.exp(-k * x))
+
+    def softplus(self, x, beta=1.0):
+        # numerically stable softplus
+        return np.log1p(np.exp(-abs(beta * x))) + max(beta * x, 0)
+
+    def compute_fitness(self, winner, played_turns, max_turns, stats):
+        # --- 1. HP preservation & damage dealt ---
+        curr_init_hp_ratio_1 = stats["hp1"] / stats["max_hp_team1"]
+        curr_init_hp_ratio_2 = stats["hp2"] / stats["max_hp_team2"]
+
+        # Damage inflicted (0–1)
+        dmg_inflicted_1 = 1.0 - curr_init_hp_ratio_2
+        dmg_inflicted_2 = 1.0 - curr_init_hp_ratio_1
+
+        # --- 2. Unit preservation ---
+        survived_initial_ratio_1 = stats["alive1"] / stats["initial_unit_count_team1"]
+        survived_initial_ratio_2 = stats["alive2"] / stats["initial_unit_count_team2"]
+
+        fitness1 = (
+            curr_init_hp_ratio_1 + dmg_inflicted_1 * 10 + survived_initial_ratio_1
+        )
+        fitness2 = (
+            curr_init_hp_ratio_2 + dmg_inflicted_2 * 10 + survived_initial_ratio_2
+        )
+
+        return self.softplus(fitness1), self.softplus(fitness2)
 
     # ============================================================
     # ⚔️ Match Execution (worker-side)
@@ -71,8 +90,8 @@ class NeatTrainer:
     def _run_match(
         config_path: str,
         game_api: "HeadlessGameAPI",
-        genome_a_data: Tuple[int, bytes],
-        genome_b_data: Tuple[int, bytes],
+        genome_a_data: tuple[int, bytes],
+        genome_b_data: tuple[int, bytes],
         max_turns: int,
     ) -> tuple[int, int, int | None, int, dict[str, float]]:
         """
@@ -99,7 +118,7 @@ class NeatTrainer:
         genome_b.__dict__.update(pickle.loads(g_b_bytes))
 
         sim = SelfPlaySimulator(config, game_api, max_turns=max_turns)
-        print(f"Match between: {gid_a} and {gid_b} starts.")
+        # print(f"Match between: {gid_a} and {gid_b} starts.")
         winner, played_turns, stats = sim.play_match(genome_a, genome_b)
 
         return gid_a, gid_b, winner, played_turns, stats
@@ -120,9 +139,9 @@ class NeatTrainer:
           - Normalize each genome's fitness by the number of matches played.
         """
         # Reset NEAT's fitness for this generation
-        fitness_sums: Dict[int, float] = {}
-        match_counts: Dict[int, int] = {}
-        genome_data: Dict[int, bytes] = {}
+        fitness_sums: dict[int, float] = {}
+        match_counts: dict[int, int] = {}
+        genome_data: dict[int, bytes] = {}
 
         for gid, genome in genomes:
             genome.fitness = 0.0
@@ -132,7 +151,7 @@ class NeatTrainer:
             genome_data[gid] = pickle.dumps(genome.__dict__)
 
         genome_ids = list(genome_data.keys())
-        matches: list[Tuple[Tuple[int, bytes], Tuple[int, bytes]]] = []
+        matches: list[tuple[tuple[int, bytes], tuple[int, bytes]]] = []
 
         # Build symmetric matches
         for gid_a in genome_ids:

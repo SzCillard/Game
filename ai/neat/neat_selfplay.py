@@ -10,20 +10,13 @@ if TYPE_CHECKING:
     from api.headless_api import HeadlessGameAPI
 
 from backend.board import GameState, create_random_map
-from utils.constants import TeamType
+from utils.constants import UNIT_STATS, TeamType
 
 
 class SelfPlaySimulator:
     """
     Simulates a match between two NEAT agents (genome A vs genome B)
     using the existing game logic and a headless API.
-
-    The simulator:
-      - Creates a fresh random map for each match.
-      - Drafts AI units for both teams.
-      - Runs turn-based self-play using a DFS+NN agent.
-      - Returns winner, number of turns played, and summary stats
-        for both teams (HP, unit counts).
     """
 
     def __init__(
@@ -33,14 +26,12 @@ class SelfPlaySimulator:
         max_turns: int,
     ) -> None:
         self.config = config
-        # we always work on a fresh clone to avoid cross-match contamination
         self.base_api = base_api
         self.max_turns = max_turns
 
-        # For training, use some exploration
         self.agent = NeatAgent(
-            max_sets=12,
-            max_branching=8,
+            max_sets=30,
+            max_branching=12,
             exploration_rate=0.2,
         )
 
@@ -49,7 +40,7 @@ class SelfPlaySimulator:
     # ------------------------------------------------------------------
     # Match setup
     # ------------------------------------------------------------------
-    def _setup_match(self) -> None:
+    def _setup_match(self) -> tuple[list[str], list[str]]:
         """
         Create a new random map and draft units for both teams.
         """
@@ -72,15 +63,24 @@ class SelfPlaySimulator:
         self.match_api.add_units(team1_draft_names, team_id=1, team=TeamType.AI)
         self.match_api.add_units(team2_draft_names, team_id=2, team=TeamType.AI)
 
+        return team1_draft_names, team2_draft_names
+
     # ------------------------------------------------------------------
     # Helper: compute summary stats for fitness
     # ------------------------------------------------------------------
-    def _compute_stats(self) -> dict[str, float]:
+    def _compute_stats(
+        self, drafted_unit_names: tuple[list[str], list[str]]
+    ) -> dict[str, float]:
         """
-        Compute simple summary statistics for both teams:
-          - total HP per team
-          - alive unit counts per team
+        Compute simple summary statistics for both teams
         """
+
+        initial_unit_count_team1 = len(drafted_unit_names[0])
+        initial_unit_count_team2 = len(drafted_unit_names[1])
+
+        max_hp_team1 = sum(UNIT_STATS[name]["health"] for name in drafted_unit_names[0])
+        max_hp_team2 = sum(UNIT_STATS[name]["health"] for name in drafted_unit_names[1])
+
         snapshot = self.match_api.get_board_snapshot()
         units = snapshot["units"]
 
@@ -97,27 +97,23 @@ class SelfPlaySimulator:
         # gets a small value due to division by 0
         alive1 = len(team1) if len(team1) > 0 else 0.1
         alive2 = len(team2) if len(team2) > 0 else 0.1
-        alive1_ratio = alive1 / alive2
-        alive2_ratio = alive2 / alive1
-
-        hp1_ratio = hp1 / hp2
-        hp2_ratio = hp2 / hp1
-
-        # turn_ratio = min(max(played_turns / max_turns, 0.0), 1.0)
-        # speed_factor = 1.0 - turn_ratio
 
         return {
-            "alive1_ratio": alive1_ratio,
-            "alive2_ratio": alive2_ratio,
-            "hp1_ratio": hp1_ratio,
-            "hp2_ratio": hp2_ratio,
+            "initial_unit_count_team1": initial_unit_count_team1,
+            "initial_unit_count_team2": initial_unit_count_team2,
+            "alive1": alive1,
+            "alive2": alive2,
+            "max_hp_team1": max_hp_team1,
+            "max_hp_team2": max_hp_team2,
+            "hp1": hp1,
+            "hp2": hp2,
         }
 
     # ------------------------------------------------------------------
     # Main match loop
     # ------------------------------------------------------------------
     def play_match(self, genome_a, genome_b):
-        self._setup_match()
+        drafted_unit_names = self._setup_match()
 
         net_a = NeatNetwork.from_genome(genome_a, self.config)
         net_b = NeatNetwork.from_genome(genome_b, self.config)
@@ -130,7 +126,7 @@ class SelfPlaySimulator:
             self.agent.execute_next_actions(self.match_api, net_a, team_id=1)
             if self.match_api.is_game_over():
                 turns_played = t + 1
-                stats = self._compute_stats()
+                stats = self._compute_stats(drafted_unit_names)
                 return self.match_api.get_winner(), turns_played, stats
 
             # --- Team 2 turn ---
@@ -138,11 +134,11 @@ class SelfPlaySimulator:
             self.agent.execute_next_actions(self.match_api, net_b, team_id=2)
             if self.match_api.is_game_over():
                 turns_played = t + 1
-                stats = self._compute_stats()
+                stats = self._compute_stats(drafted_unit_names)
                 return self.match_api.get_winner(), turns_played, stats
 
             turns_played = t + 1
 
-        stats = self._compute_stats()
+        stats = self._compute_stats(drafted_unit_names)
         winner = self.match_api.get_winner()
         return winner, turns_played, stats
