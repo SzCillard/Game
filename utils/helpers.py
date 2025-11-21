@@ -1,7 +1,7 @@
 # utils/helpers.py
 import heapq
 import math
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from utils.constants import (
     DIRS,
@@ -22,7 +22,7 @@ def manhattan(x1: int, y1: int, x2: int, y2: int) -> int:
     return abs(x1 - x2) + abs(y1 - y2)
 
 
-def compute_min_cost_gs(gs, start: Tuple[int, int], goal: Tuple[int, int]) -> float:
+def compute_min_cost_gs(gs, start: tuple[int, int], goal: tuple[int, int]) -> float:
     """
     Dijkstra / uniform-cost search on GameState 'gs' returning minimal movement cost
     from start -> goal (sum of tile move costs when entering a tile).
@@ -39,11 +39,11 @@ def compute_min_cost_gs(gs, start: Tuple[int, int], goal: Tuple[int, int]) -> fl
     INF = 10**9  # effectively "infinity" for unreachable paths
 
     # Priority queue for Dijkstra: stores (cost_so_far, x, y)
-    pq: List[Tuple[float, int, int]] = []
+    pq: list[tuple[float, int, int]] = []
     heapq.heappush(pq, (0.0, sx, sy))
 
     # Dictionary to remember the best known cost to reach each tile
-    best: Dict[Tuple[int, int], float] = {(sx, sy): 0.0}
+    best: dict[tuple[int, int], float] = {(sx, sy): 0.0}
 
     while pq:
         # Take the tile with the lowest cost seen so far
@@ -95,14 +95,14 @@ def compute_min_cost_gs(gs, start: Tuple[int, int], goal: Tuple[int, int]) -> fl
 
 
 def movement_cost_snapshot(
-    snapshot: Dict[str, Any], start: Tuple[int, int], goal: Tuple[int, int]
+    snapshot: dict[str, Any], start: tuple[int, int], goal: tuple[int, int]
 ) -> float:
     """
     Similar to compute_min_cost_gs but operates on the snapshot dict (tiles + units).
     Returns INF if unreachable. Diagonal steps cost sqrt(2) * terrain cost.
     """
-    tiles: List[List[TileType]] = snapshot["tiles"]
-    units: List[Dict[str, Any]] = snapshot["units"]
+    tiles: list[list[TileType]] = snapshot["tiles"]
+    units: list[dict[str, Any]] = snapshot["units"]
     W = len(tiles[0])
     H = len(tiles)
 
@@ -120,9 +120,9 @@ def movement_cost_snapshot(
     occupied = {(u["x"], u["y"]) for u in units if u["id"] is not None}
 
     INF = 10**9
-    pq: List[Tuple[float, int, int]] = []
+    pq: list[tuple[float, int, int]] = []
     heapq.heappush(pq, (0.0, sx, sy))
-    best: Dict[Tuple[int, int], float] = {(sx, sy): 0.0}
+    best: dict[tuple[int, int], float] = {(sx, sy): 0.0}
 
     while pq:
         cost, x, y = heapq.heappop(pq)
@@ -151,15 +151,15 @@ def movement_cost_snapshot(
 
 
 def next_step_toward_snapshot(
-    snapshot: Dict[str, Any], start: Tuple[int, int], goal: Tuple[int, int]
-) -> Optional[Tuple[int, int]]:
+    snapshot: dict[str, Any], start: tuple[int, int], goal: tuple[int, int]
+) -> Optional[tuple[int, int]]:
     """
     Compute the first step on a shortest-cost path from start to goal using snapshot.
     Returns (nx,ny) or None if unreachable or already at goal.
     Diagonal steps cost sqrt(2) * terrain cost.
     """
-    tiles: List[List[TileType]] = snapshot["tiles"]
-    units: List[Dict[str, Any]] = snapshot["units"]
+    tiles: list[list[TileType]] = snapshot["tiles"]
+    units: list[dict[str, Any]] = snapshot["units"]
     W = len(tiles[0])
     H = len(tiles)
 
@@ -177,10 +177,10 @@ def next_step_toward_snapshot(
     occupied = {(u["x"], u["y"]) for u in units}
 
     INF = 10**9
-    pq: List[Tuple[float, int, int]] = []
+    pq: list[tuple[float, int, int]] = []
     heapq.heappush(pq, (0.0, sx, sy))
-    best: Dict[Tuple[int, int], float] = {(sx, sy): 0.0}
-    parent: Dict[Tuple[int, int], Tuple[int, int]] = {}
+    best: dict[tuple[int, int], float] = {(sx, sy): 0.0}
+    parent: dict[tuple[int, int], tuple[int, int]] = {}
 
     while pq:
         cost, x, y = heapq.heappop(pq)

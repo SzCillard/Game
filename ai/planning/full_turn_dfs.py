@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import random
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable
 
 from backend.board import GameState
 from backend.logic import GameLogic
@@ -24,17 +24,17 @@ class _SimulationAPI:
     def start_turn(self, team_id: int):
         self.game_logic.turn_begin_reset(team_id)
 
-    def get_legal_actions(self, team_id: int) -> List[Dict[str, Any]]:
+    def get_legal_actions(self, team_id: int) -> list[dict[str, Any]]:
         return self.game_logic.get_legal_actions(team_id)
 
-    def apply_action(self, action: Dict[str, Any]) -> bool:
+    def apply_action(self, action: dict[str, Any]) -> bool:
         ok = self.game_logic.apply_action(action)
         return ok
 
     def check_turn_end(self, team_id: int) -> bool:
         return self.game_logic.check_turn_end(team_id)
 
-    def snapshot(self) -> Dict[str, Any]:
+    def snapshot(self) -> dict[str, Any]:
         return self.game_board.get_snapshot()
 
 
@@ -64,8 +64,8 @@ class FullTurnDFS:
         self,
         team_id: int,
         sim: _SimulationAPI,
-        actions: List[Dict[str, Any]],
-        out_sequences: List[List[Dict[str, Any]]],
+        actions: list[dict[str, Any]],
+        out_sequences: list[list[dict[str, Any]]],
     ):
         if len(out_sequences) >= self.max_sets:
             return
@@ -97,12 +97,12 @@ class FullTurnDFS:
         self,
         game_board: GameState,
         team_id: int,
-        eval_fn: Callable[[Dict[str, Any]], float],
-    ) -> List[Dict[str, Any]]:
+        eval_fn: Callable[[dict[str, Any]], float],
+    ) -> list[dict[str, Any]]:
         base = _SimulationAPI(game_board.fast_clone())
         base.start_turn(team_id)
 
-        sequences: List[List[Dict[str, Any]]] = []
+        sequences: list[list[dict[str, Any]]] = []
         self._dfs(team_id, base, [], sequences)
 
         if not sequences:
@@ -114,7 +114,7 @@ class FullTurnDFS:
 
         # Evaluate
         best_score = float("-inf")
-        best_seq: List[Dict[str, Any]] = []
+        best_seq: list[dict[str, Any]] = []
 
         for seq in sequences:
             sim = _SimulationAPI(game_board.fast_clone())

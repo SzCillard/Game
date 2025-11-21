@@ -1,9 +1,8 @@
 import time
-from typing import List, Tuple
 
 from utils.logging import logger
 
-_messages: List[Tuple[str, float]] = []
+_messages: list[tuple[str, float]] = []
 
 
 def add_message(text: str):

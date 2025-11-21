@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class BaseAgent(ABC):
     @abstractmethod
     def decide_next_action(
-        self, board_snapshot: Dict[str, Any], team: int
-    ) -> Optional[Dict[str, Any]]:
+        self, board_snapshot: dict[str, Any], team: int
+    ) -> Optional[dict[str, Any]]:
         """
         Decide the next action for one of the agent's units.
 
@@ -26,7 +26,7 @@ class BaseAgent(ABC):
         """
         pass
 
-    def evaluate_state(self, board_snapshot: List[Dict[str, Any]]) -> float:
+    def evaluate_state(self, board_snapshot: list[dict[str, Any]]) -> float:
         """Optional: returns a heuristic value of the board state."""
         return 0.0
 

@@ -6,14 +6,14 @@ various terrain generation utilities for maps (plains, hills, water, etc.).
 
 Each GameState contains:
 - Tile map (2D grid of TileType)
-- List of units
+- list of units
 - Utilities for querying and mutating the map state
 """
 
 import copy
 import random
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from backend.units import Archer, Horseman, Spearman, Swordsman, Unit
 from utils.constants import TERRAIN_MOVE_COST, TeamType, TileType
@@ -41,8 +41,8 @@ class GameState:
     width: int
     height: int
     cell_size: int
-    tile_map: List[List[TileType]] = field(default_factory=list)
-    units: List[Unit] = field(default_factory=list)
+    tile_map: list[list[TileType]] = field(default_factory=list)
+    units: list[Unit] = field(default_factory=list)
     unit_classes = {
         "Swordsman": Swordsman,
         "Archer": Archer,
@@ -210,12 +210,12 @@ class GameState:
 # ======================================================================
 
 
-def create_default_map(w: int, h: int) -> List[List[TileType]]:
+def create_default_map(w: int, h: int) -> list[list[TileType]]:
     """
     Create a default mixed terrain map with a diagonal mountain range
     and a central water column.
     """
-    m: List[List[TileType]] = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
+    m: list[list[TileType]] = [[TileType.PLAIN for _ in range(w)] for _ in range(h)]
 
     # Border hills (top/bottom)
     for x in range(w):
@@ -234,7 +234,7 @@ def create_default_map(w: int, h: int) -> List[List[TileType]]:
     return m
 
 
-def create_hilly_map(w: int, h: int) -> List[List[TileType]]:
+def create_hilly_map(w: int, h: int) -> list[list[TileType]]:
     """
     Generate a map with a thick horizontal band of hills across the center
     and some scattered hill tiles elsewhere.
@@ -258,7 +258,7 @@ def create_hilly_map(w: int, h: int) -> List[List[TileType]]:
     return m
 
 
-def create_watery_map(w: int, h: int) -> List[List[TileType]]:
+def create_watery_map(w: int, h: int) -> list[list[TileType]]:
     """
     Generate a map dominated by rivers and lakes.
 
@@ -278,7 +278,7 @@ def create_watery_map(w: int, h: int) -> List[List[TileType]]:
     return m
 
 
-def create_mountainous_map(w: int, h: int) -> List[List[TileType]]:
+def create_mountainous_map(w: int, h: int) -> list[list[TileType]]:
     """
     Generate a map with mountains blocking movement in certain areas.
     """
@@ -289,7 +289,7 @@ def create_mountainous_map(w: int, h: int) -> List[List[TileType]]:
     return m
 
 
-def create_mixed_map(w: int, h: int) -> List[List[TileType]]:
+def create_mixed_map(w: int, h: int) -> list[list[TileType]]:
     """
     Generate a balanced map with plains, hills, water, and mountains.
 
@@ -338,7 +338,7 @@ MAP_GENERATORS = {
 }
 
 
-def create_random_map(w: int, h: int) -> List[List[TileType]]:
+def create_random_map(w: int, h: int) -> list[list[TileType]]:
     """
     Randomly choose one of the available map generators.
 

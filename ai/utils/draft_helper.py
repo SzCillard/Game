@@ -1,12 +1,11 @@
 import random
-from typing import Dict, List
 
 from utils.constants import UNIT_STATS
 from utils.logging import logger
 
-ProbMap = Dict[str, float]
-StrategyMap = Dict[str, ProbMap]
-UnitInfoMap = Dict[str, Dict[str, int]]  # e.g. {"Swordsman": {"cost": 30}, ...}
+ProbMap = dict[str, float]
+StrategyMap = dict[str, ProbMap]
+UnitInfoMap = dict[str, dict[str, int]]  # e.g. {"Swordsman": {"cost": 30}, ...}
 
 probabilities: StrategyMap = {
     "balanced": {"Swordsman": 0.25, "Archer": 0.25, "Horseman": 0.25, "Spearman": 0.25},
@@ -21,13 +20,13 @@ def ai_draft_basic(
     available_units: UnitInfoMap,
     probabilities: StrategyMap,
     max_picks: int,
-) -> List[str]:
-    strategies: List[str] = ["balanced", "rush", "defense", "ranged"]
+) -> list[str]:
+    strategies: list[str] = ["balanced", "rush", "defense", "ranged"]
     choice: str = random.choice(strategies)
 
     logger(f"AI draft strategy chosen: {choice}")
 
-    selected: List[str] = []
+    selected: list[str] = []
     funds_left: int = funds  # for example 100
 
     picks_done: int = 0
@@ -46,8 +45,8 @@ def ai_draft_basic(
 
         # normalize weights
         total: float = sum(affordable.values())
-        weights: List[float] = [prob / total for prob in affordable.values()]
-        units: List[str] = list(affordable.keys())
+        weights: list[float] = [prob / total for prob in affordable.values()]
+        units: list[str] = list(affordable.keys())
 
         # choose one unit by weighted probability
         chosen: str = random.choices(units, weights=weights, k=1)[0]
@@ -76,8 +75,8 @@ def get_ai_draft_units(
     available_units: UnitInfoMap = UNIT_STATS,
     probabilities: StrategyMap = probabilities,
     max_picks: int = 100,
-) -> List[str]:
-    selected_units: List[str] = ai_draft_basic(
+) -> list[str]:
+    selected_units: list[str] = ai_draft_basic(
         funds, available_units, probabilities, max_picks
     )
     return selected_units

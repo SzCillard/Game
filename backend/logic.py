@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Optional, Tuple
+from typing import Optional
 
 from backend.board import GameState, TileType
 from backend.units import Unit
@@ -39,7 +39,7 @@ class GameLogic:
     # Movement & Combat
     # ------------------------------
 
-    def get_movable_tiles(self, unit: Unit) -> list[Tuple[int, int]]:
+    def get_movable_tiles(self, unit: Unit) -> list[tuple[int, int]]:
         """
         Get all possible (x, y) tiles that a given unit can move to.
 
@@ -49,7 +49,7 @@ class GameLogic:
         Returns:
             list[tuple[int, int]]: A list of valid coordinates.
         """
-        tiles: list[Tuple[int, int]] = []
+        tiles: list[tuple[int, int]] = []
 
         for dx, dy in self.dirs:
             nx = unit.x + dx
@@ -110,7 +110,7 @@ class GameLogic:
         )
         return True
 
-    def get_attackable_tiles(self, unit: Unit) -> list[Tuple[int, int]]:
+    def get_attackable_tiles(self, unit: Unit) -> list[tuple[int, int]]:
         """
         Get all tiles containing enemy units that the given unit can attack.
 
@@ -120,7 +120,7 @@ class GameLogic:
         Returns:
             list[tuple[int, int]]: Positions of enemy units in range.
         """
-        tiles: list[Tuple[int, int]] = []
+        tiles: list[tuple[int, int]] = []
         for target in self.game_board.units:
             if self.can_attack(unit, target):
                 tiles.append((target.x, target.y))

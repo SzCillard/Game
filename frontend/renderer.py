@@ -208,8 +208,8 @@ class Renderer:
 
         Args:
             screen (pygame.Surface): Display surface.
-            move_tiles (list[tuple]): List of (x, y) tiles in movement range.
-            attack_tiles (list[tuple]): List of (x, y) tiles in attack range.
+            move_tiles (list[tuple]): list of (x, y) tiles in movement range.
+            attack_tiles (list[tuple]): list of (x, y) tiles in attack range.
         """
         # Movement (blue outline)
         for x, y in move_tiles:

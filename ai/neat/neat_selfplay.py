@@ -30,7 +30,7 @@ class SelfPlaySimulator:
         self.max_turns = max_turns
 
         self.agent = NeatAgent(
-            max_sets=200,
+            max_sets=100,
             max_branching=20,
             exploration_rate=0.2,
         )

@@ -1,6 +1,6 @@
 # utils/image_helpers.py
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import pygame
 
@@ -30,7 +30,7 @@ def load_unit_images(cell_size: int):
     return images
 
 
-def load_single_image(path: str, size: Tuple[int, int]) -> Optional[pygame.Surface]:
+def load_single_image(path: str, size: tuple[int, int]) -> Optional[pygame.Surface]:
     full = get_asset_path(path)
 
     try:

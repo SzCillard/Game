@@ -1,5 +1,5 @@
 # ai/agents/basic_agent.py
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from utils.helpers import manhattan, next_step_toward_snapshot
 
@@ -11,8 +11,8 @@ class BasicAgent(BaseAgent):
         super().__init__()
 
     def decide_next_action(
-        self, board_snapshot: Dict[str, Any], team: int
-    ) -> Optional[Dict[str, Any]]:
+        self, board_snapshot: dict[str, Any], team: int
+    ) -> Optional[dict[str, Any]]:
         """
         board_snapshot: dict returned by GameState.get_snapshot()
         team: team_id (1 or 2)
