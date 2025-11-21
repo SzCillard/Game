@@ -1,17 +1,17 @@
 [NEAT]
 fitness_criterion     = max
 fitness_threshold     = 1000.0
-pop_size = 10
+pop_size = 12
 reset_on_extinction   = False
 
 [DefaultGenome]
-num_inputs            = 17
+num_inputs            = 24
 num_outputs           = 1
-num_hidden            = 6
+num_hidden            = 8
 feed_forward          = True
-activation_default    = sigmoid
+activation_default    = softplus
 activation_mutate_rate= 0.0
-activation_options    = sigmoid
+activation_options    = softplus
 aggregation_default   = sum
 aggregation_mutate_rate=0.0
 aggregation_options   = sum
