@@ -49,8 +49,8 @@ class FullTurnDFS:
 
     def __init__(
         self,
-        max_sets: int = 12,
-        max_branching: int = 7,
+        max_sets: int = 200,
+        max_branching: int = 20,
         exploration_rate: float = 0.0,
     ):
         self.max_sets = max_sets

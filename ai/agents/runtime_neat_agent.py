@@ -9,8 +9,8 @@ class RuntimeNeatAgent:
     def __init__(self, brain: NeatNetwork):
         self.brain = brain
         self.planner = FullTurnDFS(
-            max_sets=30,
-            max_branching=10,
+            max_sets=500,
+            max_branching=40,
             exploration_rate=0.0,
         )
 
