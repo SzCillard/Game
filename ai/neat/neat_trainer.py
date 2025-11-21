@@ -8,7 +8,7 @@ import neat
 import numpy as np
 
 from ai.neat.neat_selfplay import SelfPlaySimulator
-from api.headless_api import HeadlessGameAPI
+from api.simulation_api import SimulationAPI
 
 
 class NeatTrainer:
@@ -30,7 +30,7 @@ class NeatTrainer:
     def __init__(
         self,
         config_path: str,
-        game_api: "HeadlessGameAPI",
+        game_api: "SimulationAPI",
         opponents_per_genome: int,
         max_workers: int,
         max_turns: int,
@@ -89,7 +89,7 @@ class NeatTrainer:
     @staticmethod
     def _run_match(
         config_path: str,
-        game_api: "HeadlessGameAPI",
+        game_api: "SimulationAPI",
         genome_a_data: tuple[int, bytes],
         genome_b_data: tuple[int, bytes],
         max_turns: int,

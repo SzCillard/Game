@@ -4,7 +4,6 @@ from __future__ import annotations
 import copy
 from typing import Any, Optional
 
-from ai.agents.runtime_neat_agent import RuntimeNeatAgent
 from backend.board import GameState
 from backend.logic import GameLogic
 from backend.units import Unit
@@ -48,10 +47,10 @@ class GameAPI:
         self.game_board = game_board
         self.game_logic.game_board = self.game_board
 
-    def turn_begin_reset(self, team_id: int):
-        self.game_logic.turn_begin_reset(team_id)
+    def start_turn(self, team_id: int):
+        self.game_logic.start_turn(team_id)
 
-    def check_turn_end(self, team_id: int):
+    def check_turn_end(self, team_id: int) -> bool:
         return self.game_logic.check_turn_end(team_id)
 
     # ------------------------------
@@ -64,10 +63,7 @@ class GameAPI:
         Currently we assume a NEAT-based agent (RuntimeNeatAgent or similar)
         that exposes a `play_turn(api, team_id)` method.
         """
-        if isinstance(self.agent, RuntimeNeatAgent):
-            # NEAT runtime agent plans a whole turn internally (and uses NeatAgent)
-            self.agent.play_turn(self, team_id)
-        elif hasattr(self.agent, "play_turn"):
+        if hasattr(self.agent, "play_turn"):
             # Generic NEAT-like agent with a play_turn method
             self.agent.play_turn(self, team_id)
         else:
@@ -105,7 +101,7 @@ class GameAPI:
 
     # --- Action requests (frontend calls these) ---
 
-    def get_legal_actions(self, team_id):
+    def get_legal_actions(self, team_id: int) -> list[dict[str, Any]]:
         return self.game_logic.get_legal_actions(team_id)
 
     def request_move(self, unit, x, y):
@@ -122,21 +118,13 @@ class GameAPI:
     def get_attackable_tiles(self, unit):
         return self.game_logic.get_attackable_tiles(unit)
 
-    def apply_action(self, action):
-        return self.game_logic.apply_action(action)
-
-    # --- Agent interaction ---
+    def apply_action(self, action: dict[str, Any]) -> bool:
+        ok = self.game_logic.apply_action(action)
+        return ok
 
     def get_board_snapshot(self) -> dict[str, Any]:
         """Provide a read-only view of the board for AI agents"""
         return self.game_board.get_snapshot()
-
-    def get_ai_action(self):
-        """(kept for compatibility with simple agents)"""
-        snapshot = self.get_board_snapshot()
-        if hasattr(self.agent, "decide_next_action"):
-            return self.agent.decide_next_action(snapshot, self.team2_id)
-        return None
 
     # --- UI/Renderer interactions (backend calls these) ---
 

@@ -2,9 +2,8 @@
 import argparse
 
 from ai.neat.neat_trainer import NeatTrainer
-from api.headless_api import HeadlessGameAPI
+from api.simulation_api import SimulationAPI
 from backend.board import GameState, create_random_map
-from backend.logic import GameLogic
 
 
 def parse_args():
@@ -51,8 +50,7 @@ def main():
         cell_size=64,
         tile_map=create_random_map(8, 8),
     )
-    game_logic = GameLogic(game_board)
-    headless_api = HeadlessGameAPI(game_board, game_logic)
+    headless_api = SimulationAPI(game_board)
 
     # Inject population override into config file if requested
     if args.population_size is not None:

@@ -8,13 +8,13 @@ if TYPE_CHECKING:
     pass
 
 
-from ai.planning.action_planning import ActionPlannerReversible
+from ai.planning.action_planning import ActionPlanner
 
 
 class NeatAgent:
     def __init__(self, max_sets=100, max_branching=12, exploration_rate=0.05):
         self.brain = None
-        self.planner = ActionPlannerReversible(
+        self.planner = ActionPlanner(
             max_sets=max_sets,
             max_branching=max_branching,
             exploration_rate=exploration_rate,

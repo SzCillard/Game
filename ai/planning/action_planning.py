@@ -4,6 +4,7 @@ from __future__ import annotations
 import random
 from typing import Any, Callable
 
+from api.simulation_api import SimulationAPI
 from backend.board import GameState
 from backend.logic import GameLogic
 
@@ -22,7 +23,7 @@ class _SimulationAPI:
         return _SimulationAPI(new_board)
 
     def start_turn(self, team_id: int):
-        self.game_logic.turn_begin_reset(team_id)
+        self.game_logic.start_turn(team_id)
 
     def get_legal_actions(self, team_id: int) -> list[dict[str, Any]]:
         return self.game_logic.get_legal_actions(team_id)
@@ -47,7 +48,7 @@ class ActionPlannerReversible:
     # ------------------------------------------------------------
     # Apply action with reversible state token
     # ------------------------------------------------------------
-    def _apply_action_reversible(self, sim: _SimulationAPI, action: dict):
+    def _apply_action_reversible(self, sim: SimulationAPI, action: dict):
         board = sim.game_board
         logic = sim.game_logic
 
@@ -110,7 +111,7 @@ class ActionPlannerReversible:
     # ------------------------------------------------------------
     # Undo reversible change
     # ------------------------------------------------------------
-    def _undo(self, sim: _SimulationAPI, restore):
+    def _undo(self, sim: SimulationAPI, restore):
         board = sim.game_board
 
         # Restore units' attributes
@@ -160,7 +161,7 @@ class ActionPlannerReversible:
     # Public planning entry
     # ------------------------------------------------------------
     def plan(self, game_board, team_id, eval_fn):
-        sim = _SimulationAPI(game_board.fast_clone())
+        sim = SimulationAPI(game_board.fast_clone())
         sim.start_turn(team_id)
 
         sequences = []
@@ -176,13 +177,13 @@ class ActionPlannerReversible:
         best_score = float("-inf")
 
         for seq in sequences:
-            replay = _SimulationAPI(game_board.fast_clone())
-            replay.start_turn(team_id)
+            replay_api = SimulationAPI(game_board.fast_clone())
+            replay_api.start_turn(team_id)
 
             for act in seq:
-                replay.apply_action(act)
+                replay_api.apply_action(act)
 
-            score = eval_fn(replay.snapshot())
+            score = eval_fn(replay_api.get_board_snapshot())
             if score > best_score:
                 best_score = score
                 best = seq
@@ -215,7 +216,7 @@ class ActionPlanner:
     def _dfs(
         self,
         team_id: int,
-        sim: _SimulationAPI,
+        sim: SimulationAPI,
         actions: list[dict[str, Any]],
         out_sequences: list[list[dict[str, Any]]],
     ):
@@ -251,7 +252,7 @@ class ActionPlanner:
         team_id: int,
         eval_fn: Callable[[dict[str, Any]], float],
     ) -> list[dict[str, Any]]:
-        base = _SimulationAPI(game_board.fast_clone())
+        base = SimulationAPI(game_board.fast_clone())
         base.start_turn(team_id)
 
         sequences: list[list[dict[str, Any]]] = []
@@ -269,13 +270,13 @@ class ActionPlanner:
         best_seq: list[dict[str, Any]] = []
 
         for seq in sequences:
-            sim = _SimulationAPI(game_board.fast_clone())
+            sim = SimulationAPI(game_board.fast_clone())
             sim.start_turn(team_id)
 
             for act in seq:
                 sim.apply_action(act)
 
-            score = eval_fn(sim.snapshot())
+            score = eval_fn(sim.get_board_snapshot())
             if score > best_score:
                 best_score = score
                 best_seq = seq

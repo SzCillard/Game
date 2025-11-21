@@ -7,7 +7,7 @@ from ai.neat.neat_network import NeatNetwork
 from ai.utils.draft_helper import get_ai_draft_units
 
 if TYPE_CHECKING:
-    from api.headless_api import HeadlessGameAPI
+    from api.simulation_api import SimulationAPI
 
 from backend.board import GameState, create_random_map
 from utils.constants import UNIT_STATS, TeamType
@@ -22,7 +22,7 @@ class SelfPlaySimulator:
     def __init__(
         self,
         config,
-        base_api: "HeadlessGameAPI",
+        base_api: "SimulationAPI",
         max_turns: int,
     ) -> None:
         self.config = config
@@ -31,7 +31,7 @@ class SelfPlaySimulator:
 
         self.agent = NeatAgent()
 
-        self.match_api: HeadlessGameAPI = self.base_api.clone()
+        self.match_api: SimulationAPI = self.base_api.clone()
 
     # ------------------------------------------------------------------
     # Match setup
@@ -118,7 +118,7 @@ class SelfPlaySimulator:
 
         for t in range(self.max_turns):
             # --- Team 1 turn ---
-            self.match_api.turn_begin_reset(1)
+            self.match_api.start_turn(1)
             self.agent.execute_next_actions(self.match_api, net_a, team_id=1)
             if self.match_api.is_game_over():
                 turns_played = t + 1
@@ -126,7 +126,7 @@ class SelfPlaySimulator:
                 return self.match_api.get_winner(), turns_played, stats
 
             # --- Team 2 turn ---
-            self.match_api.turn_begin_reset(2)
+            self.match_api.start_turn(2)
             self.agent.execute_next_actions(self.match_api, net_b, team_id=2)
             if self.match_api.is_game_over():
                 turns_played = t + 1
