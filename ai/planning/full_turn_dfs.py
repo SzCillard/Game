@@ -23,15 +23,12 @@ class _SimulationAPI:
 
     def start_turn(self, team_id: int):
         self.game_logic.turn_begin_reset(team_id)
-        self.game_logic.update_damage_timers()
 
     def get_legal_actions(self, team_id: int) -> List[Dict[str, Any]]:
         return self.game_logic.get_legal_actions(team_id)
 
     def apply_action(self, action: Dict[str, Any]) -> bool:
         ok = self.game_logic.apply_action(action)
-        if ok:
-            self.game_logic.update_damage_timers()
         return ok
 
     def check_turn_end(self, team_id: int) -> bool:
