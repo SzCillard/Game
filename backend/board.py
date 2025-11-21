@@ -164,6 +164,12 @@ class GameState:
                 return u
         return None
 
+    def get_unit_by_id(self, id: int) -> Optional[Unit]:
+        for u in self.units:
+            if u.id == id:
+                return u
+        return None
+
     def get_snapshot(self) -> dict[str, Any]:
         """
         Return a simplified snapshot of the current game state.
