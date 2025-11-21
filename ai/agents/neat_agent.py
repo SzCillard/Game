@@ -12,7 +12,7 @@ from ai.planning.full_turn_dfs import FullTurnDFS
 
 
 class NeatAgent:
-    def __init__(self, max_sets=20, max_branching=10, exploration_rate=0.2):
+    def __init__(self, max_sets, max_branching, exploration_rate):
         self.brain = None
         self.planner = FullTurnDFS(
             max_sets=max_sets,
