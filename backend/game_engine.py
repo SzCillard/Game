@@ -128,14 +128,14 @@ class GameEngine:
 
             if self.game_api.check_turn_end(current_team_id):
                 self.current_team_id = 2 if current_team_id == 1 else 1
-                self.game_api.turn_begin_reset(self.current_team_id)
+                self.game_api.start_turn(self.current_team_id)
 
         # --- AI Turn ---
         elif team_type == TeamType.AI:
             self.game_api.run_ai_turn(current_team_id)
             if self.game_api.check_turn_end(current_team_id):
                 self.current_team_id = 2 if current_team_id == 1 else 1
-                self.game_api.turn_begin_reset(self.current_team_id)
+                self.game_api.start_turn(self.current_team_id)
 
         return True
 
@@ -170,7 +170,7 @@ class GameEngine:
     def run(self) -> bool | str:
         """Main gameplay loop supporting AI vs AI or Human vs AI."""
         play_battle_music()
-        self.game_api.turn_begin_reset(self.current_team_id)
+        self.game_api.start_turn(self.current_team_id)
         game_active = True
 
         while game_active:
