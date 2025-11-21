@@ -262,7 +262,7 @@ class GameLogic:
                 if u.damage_timer == 0:
                     u.last_damage = 0
 
-    def turn_begin_reset(self, team_id: int) -> None:
+    def start_turn(self, team_id: int) -> None:
         for u in self.game_board.units:
             if u.team_id == team_id:
                 u.move_points = u.move_range
