@@ -162,10 +162,7 @@ DIRS = (
     (-1, 0),
     (0, 1),
     (0, -1),
-    (1, 1),
-    (-1, -1),
-    (1, -1),
-    (-1, 1),
 )
+
 
 EPSILON = 0.6  # tolerance for float movement points

@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 
 from backend.board import GameState, TileType
 from backend.units import Unit
-from utils.constants import DAMAGE_DISPLAY_TIME, EPSILON
+from utils.constants import DAMAGE_DISPLAY_TIME, DIRS, EPSILON
 from utils.helpers import calculate_damage, compute_min_cost_gs, manhattan
 from utils.messages import logger
 
@@ -30,6 +30,7 @@ class GameLogic:
             game_state (GameState): The shared game state containing tiles and units.
         """
         self.game_board = game_state
+        self.dirs = DIRS
 
     def clone(self):
         return copy.deepcopy(self)
@@ -49,10 +50,13 @@ class GameLogic:
             list[tuple[int, int]]: A list of valid coordinates.
         """
         tiles: list[Tuple[int, int]] = []
-        for x in range(self.game_board.width):
-            for y in range(self.game_board.height):
-                if self.can_move(unit, x, y):
-                    tiles.append((x, y))
+
+        for dx, dy in self.dirs:
+            nx = unit.x + dx
+            ny = unit.y + dy
+            if self.can_move(unit, nx, ny):
+                tiles.append((nx, ny))
+
         return tiles
 
     def can_move(self, unit: Unit, to_x: int, to_y: int) -> bool:
