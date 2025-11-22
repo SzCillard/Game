@@ -20,5 +20,6 @@ def create_log_file():
 
 def logger(message: str) -> None:
     if evolution_run is False:
+        os.makedirs(os.path.dirname(LOGPATH), exist_ok=True)
         with open(LOGPATH, "a") as f:
             f.write(f"\n {message}")
