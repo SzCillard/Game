@@ -4,8 +4,6 @@ main.py
 Entry point for Commanders' Arena.
 """
 
-from pathlib import Path
-
 import pygame
 
 from ai.agents.runtime_neat_agent import RuntimeNeatAgent
@@ -36,26 +34,18 @@ from utils.path_utils import get_asset_path
 
 
 def create_runtime_neat_agent() -> RuntimeNeatAgent | None:
-    base_dir = Path(__file__).resolve().parent
-    genome_candidates = [
-        base_dir / "ai/neat/genomes/best_genome.pkl",
-        base_dir / "ai/neat/best_genome.pkl",
-        Path.cwd() / "best_genome.pkl",  # fallback in repo root
-    ]
-    config_path = base_dir / "ai/neat/neat_config.txt"
+    try:
+        genome_path = get_asset_path("assets/neat/genomes/best_genome.pkl")
+        config_path = get_asset_path("assets/neat/configs/neat_config.txt")
 
-    for path in genome_candidates:
-        if not path.exists():
-            continue
-        try:
-            brain = NeatNetwork(genome_path=str(path), config_path=str(config_path))
-            logger(f"Loaded NEAT genome from: {path}")
-            return RuntimeNeatAgent(brain)
-        except Exception as e:
-            logger(f"Failed to load NEAT genome at {path}: {e}")
+        brain = NeatNetwork(genome_path=str(genome_path), config_path=str(config_path))
 
-    logger("No NEAT genome found. Falling back to BasicAgent.")
-    return None
+        logger(f"Loaded NEAT genome from: {genome_path}")
+        return RuntimeNeatAgent(brain)
+
+    except Exception as e:
+        logger(f"Failed to load NEAT genome: {e}")
+        return None
 
 
 # ======================================================================

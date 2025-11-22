@@ -3,28 +3,19 @@ from __future__ import annotations
 import pickle
 import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
 
 import neat
 import numpy as np
 
 from ai.neat.neat_selfplay import SelfPlaySimulator
 from api.simulation_api import SimulationAPI
+from utils.path_utils import get_asset_path
 
 
 class NeatTrainer:
     """
     Parallel NEAT self-play trainer.
-
-    Responsibilities:
-      - Create a NEAT population.
-      - For each generation, evaluate genomes via self-play:
-          * each genome plays several matches vs random opponents
-          * matches are symmetric: A vs B and B vs A
-      - Compute fitness from final board stats:
-          * HP advantage
-          * unit count advantage
-          * win/loss with speed bonus
-      - Let NEAT handle species, reproduction, and elitism.
     """
 
     def __init__(
@@ -35,19 +26,25 @@ class NeatTrainer:
         max_workers: int,
         max_turns: int,
     ) -> None:
-        self.config_path = config_path
+        # 🔥 Always resolve config path through get_asset_path()
+        self.config_path = get_asset_path(config_path)
+
         self.config = neat.Config(
             neat.DefaultGenome,
             neat.DefaultReproduction,
             neat.DefaultSpeciesSet,
             neat.DefaultStagnation,
-            config_path,
+            self.config_path,
         )
 
         self.base_game_api = game_api
         self.max_workers = max_workers
         self.opponents_per_genome = opponents_per_genome
         self.max_turns = max_turns
+
+        # 🔥 Save best genome here (safe in both dev + exe):
+        self.model_output = Path(get_asset_path("assets/neat/genomes/best_genome.pkl"))
+        self.model_output.parent.mkdir(parents=True, exist_ok=True)
 
     # ============================================================
     # 🎯 Fitness Function
@@ -58,7 +55,6 @@ class NeatTrainer:
         return 1.0 / (1.0 + np.exp(-k * x))
 
     def softplus(self, x, beta=1.0):
-        # numerically stable softplus
         return np.log1p(np.exp(-abs(beta * x))) + max(beta * x, 0)
 
     def compute_fitness(self, winner, played_turns, max_turns, stats):
@@ -103,6 +99,7 @@ class NeatTrainer:
         gid_a, g_a_bytes = genome_a_data
         gid_b, g_b_bytes = genome_b_data
 
+        # 🔥 Config path is already absolute and correct
         config = neat.Config(
             neat.DefaultGenome,
             neat.DefaultReproduction,
@@ -172,7 +169,7 @@ class NeatTrainer:
                 # B as team 1 vs A as team 2
                 matches.append((g_b_data, g_a_data))
 
-        # Parallel execution of matches
+        # Parallel processing
         with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
             futures = []
             for g_a_data, g_b_data in matches:
@@ -197,7 +194,7 @@ class NeatTrainer:
                 match_counts[gid_a] += 1
                 match_counts[gid_b] += 1
 
-        # Normalize fitness by number of matches per genome
+        # Normalize
         for gid, genome in genomes:
             m = max(1, match_counts.get(gid, 0))
             genome.fitness = fitness_sums.get(gid, 0.0) / float(m)
@@ -213,14 +210,16 @@ class NeatTrainer:
         pop.add_reporter(stats)
 
         winner = pop.run(self.eval_genomes, generations)
+
         if winner is None:
             print("\nNo winner genome produced.")
         else:
-            print(
-                f"""\n🏆 Winner genome:
-                {getattr(winner, "key", None)} ({winner.fitness:.4f})"""
-            )
-            with open("best_genome.pkl", "wb") as f:
+            print(f"\n🏆 Winner genome {winner.key} ({winner.fitness:.4f})")
+
+            # 🔥 Save model in the safe assets/models folder
+            with open(self.model_output, "wb") as f:
                 pickle.dump(winner, f)
+
+            print(f"Saved best genome → {self.model_output}")
 
         return winner

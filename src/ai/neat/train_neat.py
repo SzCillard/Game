@@ -1,19 +1,27 @@
 # ai/neat/train_neat.py
+from __future__ import annotations
+
 import argparse
+import pickle
+from datetime import datetime
 from pathlib import Path
 
 from ai.neat.neat_trainer import NeatTrainer
 from api.simulation_api import SimulationAPI
 from backend.board import GameState, create_random_map
+from utils.path_utils import get_asset_path
 
 
+# ---------------------------------------------------------
+# Command-line arguments
+# ---------------------------------------------------------
 def parse_args():
     parser = argparse.ArgumentParser(description="Train NEAT via self-play.")
 
     parser.add_argument(
         "--config",
         type=str,
-        default=Path(__file__).resolve().parent / "neat_config.txt",
+        default=get_asset_path("assets/neat/configs/neat_config.txt"),
         help="Path to NEAT config file.",
     )
 
@@ -28,7 +36,9 @@ def parse_args():
         help="Override NEAT config population size.",
     )
 
-    parser.add_argument("--max_workers", type=int, default=4, help="Process pool size.")
+    parser.add_argument(
+        "--max_workers", type=int, default=4, help="Parallel worker processes."
+    )
 
     parser.add_argument(
         "--opponents", type=int, default=5, help="Opponents per genome per generation."
@@ -41,50 +51,91 @@ def parse_args():
     return parser.parse_args()
 
 
+# ---------------------------------------------------------
+# Utility: override NEAT config population dynamically
+# ---------------------------------------------------------
+def override_population_size(config_path: str, new_size: int):
+    """Modify NEAT config file's population size on the fly."""
+    updated = []
+    with open(config_path, "r") as f:
+        for line in f.readlines():
+            if line.strip().startswith("pop_size"):
+                updated.append(f"pop_size = {new_size}\n")
+            else:
+                updated.append(line)
+
+    with open(config_path, "w") as f:
+        f.writelines(updated)
+
+    print(f"✔ Updated pop_size in {config_path} → {new_size}")
+
+
+# ---------------------------------------------------------
+# Utility: Save best genome to assets/neat/
+# ---------------------------------------------------------
+def save_best_genome(genome):
+    """
+    Saves:
+    - assets/neat/best_genome.pkl  (used by the game)
+    - assets/neat/best_genome_YYYYMMDD_HHMM.pkl (backup)
+    """
+
+    # Resolve correct asset dir (works in EXE & dev mode)
+    asset_dir = Path(get_asset_path("assets/neat/genomes"))
+
+    # Ensure directory exists
+    asset_dir.mkdir(parents=True, exist_ok=True)
+
+    final_path = asset_dir / "best_genome.pkl"
+    timestamp_path = asset_dir / f"best_genome_{datetime.now():%Y%m%d_%H%M}.pkl"
+
+    with open(final_path, "wb") as f:
+        pickle.dump(genome, f)
+
+    with open(timestamp_path, "wb") as f:
+        pickle.dump(genome, f)
+
+    print(f"🎉 Saved best genome → {final_path}")
+    print(f"🗂  Backup created → {timestamp_path}")
+
+
+# ---------------------------------------------------------
+# Main training function
+# ---------------------------------------------------------
 def main():
     args = parse_args()
 
-    # Create fresh game environment
+    print("🚀 Starting NEAT training...")
+
+    # Prepare initial simulation environment
     game_board = GameState(
         width=8,
         height=8,
         cell_size=64,
         tile_map=create_random_map(8, 8),
     )
-    headless_api = SimulationAPI(game_board)
+    headless = SimulationAPI(game_board)
 
-    # Inject population override into config file if requested
-    if args.population_size is not None:
-        print(f"⚙️ Overriding population size → {args.population_size}")
+    # Override pop size if requested
+    if args.population_size:
         override_population_size(args.config, args.population_size)
 
-    # Create trainer with CLI parameters
+    # Create trainer
     trainer = NeatTrainer(
         config_path=args.config,
-        game_api=headless_api,
+        game_api=headless,
         max_workers=args.max_workers,
         opponents_per_genome=args.opponents,
         max_turns=args.max_turns,
     )
 
-    trainer.max_turns = args.max_turns
+    # Run training
+    best = trainer.run(generations=args.generations)
 
-    trainer.run(generations=args.generations)
-    print("Training complete. Best genome saved to best_genome.pkl")
+    # Save the result
+    save_best_genome(best)
 
-
-def override_population_size(config_path: str, size: int):
-    """Modify NEAT config file's population size dynamically."""
-    lines = []
-    with open(config_path, "r") as f:
-        for line in f.readlines():
-            if line.startswith("pop_size"):
-                lines.append(f"pop_size = {size}\n")
-            else:
-                lines.append(line)
-
-    with open(config_path, "w") as f:
-        f.writelines(lines)
+    print("🏁 Training complete!")
 
 
 if __name__ == "__main__":
