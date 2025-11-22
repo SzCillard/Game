@@ -36,7 +36,8 @@ jobs:
 
       # 6. Build EXE (fixed — SINGLE LINE, correct syntax)
       - name: Build EXE
-        run: poetry run pyinstaller --noconsole --name CommandersArena --add-data "assets;assets" main.py
+        run: poetry run pyinstaller --noconsole --name CommandersArena --add-data "assets;assets" src/main.py
+
 
       # 7. Prepare package for NSIS
       - name: Prepare dist_package
