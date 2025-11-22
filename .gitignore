@@ -1,5 +1,6 @@
 # Logs
-log/log.txt
+log/*
+!log/.gitkeep
 
 # Python cache directories
 __pycache__/
