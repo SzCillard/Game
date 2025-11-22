@@ -6,13 +6,14 @@ authors = ["Szauer Szilárd <szauerszilard@gmail.com>"]
 readme = "README.md"
 
 packages = [
-    { include = "ai" },
-    { include = "api" },
-    { include = "backend" },
-    { include = "frontend" },
-    { include = "utils" },
-    { include = "variables" },
+    { include = "ai", from = "src" },
+    { include = "api", from = "src" },
+    { include = "backend", from = "src" },
+    { include = "frontend", from = "src" },
+    { include = "utils", from = "src" },
+    { include = "variables", from = "src" },
 ]
+
 
 
 [tool.poetry.dependencies]

@@ -1,5 +1,3 @@
-# utils/path_utils.py
-
 import sys
 from pathlib import Path
 from typing import Union
@@ -12,7 +10,7 @@ def get_asset_path(relative_path: Union[str, Path]) -> str:
     ✅ PyInstaller Windows EXE (uses sys._MEIPASS)
     """
 
-    # PyInstaller adds sys._MEIPASS at runtime
-    base_path = getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)
+    # Use getattr to avoid static type checker warnings
+    base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
 
-    return str(Path(base_path) / relative_path)
+    return str(base_path / relative_path)
