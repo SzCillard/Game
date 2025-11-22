@@ -13,7 +13,7 @@ def delete_log_file():
 
 def create_log_file():
     delete_log_file()
-
+    os.makedirs(os.path.dirname(LOGPATH), exist_ok=True)
     with open(LOGPATH, "w") as f:
         f.write("Log start\n")
 
