@@ -1,5 +1,6 @@
 # ai/neat/train_neat.py
 import argparse
+from pathlib import Path
 
 from ai.neat.neat_trainer import NeatTrainer
 from api.simulation_api import SimulationAPI
@@ -12,7 +13,7 @@ def parse_args():
     parser.add_argument(
         "--config",
         type=str,
-        default="ai/neat/neat_config.txt",
+        default=Path(__file__).resolve().parent / "neat_config.txt",
         help="Path to NEAT config file.",
     )
 
