@@ -190,7 +190,7 @@ class ActionPlannerReversible:
 
         return best or []
 
-    def plan_all_sequences(self, game_board, team_id):
+    def plan_sequences(self, game_board, team_id):
         sim = SimulationAPI(game_board.fast_clone())
         sim.start_turn(team_id)
 
@@ -290,3 +290,94 @@ class ActionPlanner:
                 best_seq = seq
 
         return best_seq
+
+
+# ------------------------------------------------------------
+# Beam Search Full-Turn Planner  (FAST + NN-Guided)
+# ------------------------------------------------------------
+class BeamSearchPlannerFullTurn:
+    """
+    Beam-search-based full-turn planner.
+
+    - Generates *full* action sequences for a single turn of `team_id`.
+    - Uses beam search to limit branching:
+        - At each step, keep only `beam_width` best partial sequences.
+        - For each node, branch on at most `max_branching` legal actions.
+    - A sequence is considered "finished" when:
+        - sim.check_turn_end(team_id) is True, or
+        - there are no legal actions left.
+    """
+
+    def __init__(self, beam_width: int, max_branching: int):
+        self.beam_width = beam_width
+        self.max_branching = max_branching
+
+    def plan_sequences(
+        self,
+        game_board: GameState,
+        team_id: int,
+        eval_fn: Callable[[dict[str, Any]], float],
+    ) -> list[list[dict[str, Any]]]:
+        """
+        Returns a list of full-turn action sequences (best-first).
+
+        Each sequence is a list[dict] of actions that, when applied from
+        the given game_board, completes the turn for `team_id`.
+        """
+
+        # Initial simulation at start of this team's turn
+        root_sim = SimulationAPI(game_board.fast_clone())
+        root_sim.start_turn(team_id)
+
+        # frontier: list of (sim, seq, score)
+        # score is evaluation of the *current* state after seq
+        initial_score = eval_fn(root_sim.get_board_snapshot())
+        frontier: list[tuple[SimulationAPI, list[dict[str, Any]], float]] = [
+            (root_sim, [], initial_score)
+        ]
+
+        finished: list[tuple[list[dict[str, Any]], float]] = []
+
+        while frontier:
+            candidates: list[tuple[SimulationAPI, list[dict[str, Any]], float]] = []
+
+            # Expand all nodes in current frontier
+            for sim, seq, _ in frontier:
+                # Check if this sequence already ended the turn
+                if sim.check_turn_end(team_id):
+                    finished.append((seq, eval_fn(sim.get_board_snapshot())))
+                    continue
+
+                legal = sim.get_legal_actions(team_id)
+                if not legal:
+                    # No moves → treat as finished sequence
+                    finished.append((seq, eval_fn(sim.get_board_snapshot())))
+                    continue
+
+                random.shuffle(legal)
+                legal = legal[: self.max_branching]
+
+                for act in legal:
+                    child_sim = sim.clone()
+                    if not child_sim.apply_action(act):
+                        continue
+
+                    child_seq = seq + [act]
+                    score = eval_fn(child_sim.get_board_snapshot())
+                    candidates.append((child_sim, child_seq, score))
+
+            # No more candidates → all current frontier nodes were finished
+            if not candidates:
+                break
+
+            # Sort candidates (best first) and keep only top beam_width
+            candidates.sort(key=lambda item: item[2], reverse=True)
+            frontier = candidates[: self.beam_width]
+
+        # If we never produced a finished sequence, fall back to current frontier
+        if not finished:
+            finished = [(seq, score) for (_sim, seq, score) in frontier]
+
+        # Sort finished by score, best first, and return only action sequences
+        finished.sort(key=lambda item: item[1], reverse=True)
+        return [seq for (seq, _score) in finished]
