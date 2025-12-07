@@ -1,8 +1,9 @@
 """
-main.py
-
-Entry point for Commanders' Arena.
+main.py — Entry point for Commanders' Arena
 """
+
+import argparse
+from pathlib import Path
 
 import pygame
 
@@ -29,35 +30,81 @@ from utils.music_utils import play_menu_music
 from utils.path_utils import get_asset_path
 
 # ======================================================================
-# 🤖 Helper: load runtime NEAT agent (if possible)
+# 🔧 Command-line Arguments
 # ======================================================================
 
 
-def create_runtime_neat_agent() -> RuntimeNeatAgent | None:
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run Commanders' Arena.")
+    parser.add_argument(
+        "-g",
+        "--genome",
+        type=str,
+        default=None,
+        help="Path to a specific NEAT genome to load.",
+    )
+    return parser.parse_args()
+
+
+# ======================================================================
+# 🤖 NEAT Agent Loader
+# ======================================================================
+
+
+def load_neat_agent(genome_override: str | None) -> RuntimeNeatAgent | None:
+    """
+    Load NEAT genome.
+
+    If --genome is just a filename, it will be resolved inside:
+        assets/neat/genomes/<file>
+
+    If --genome is a full path, it will be used as-is.
+    """
+
+    # Default genome path
+    default_path = Path(get_asset_path("assets/neat/genomes/best_genome.pkl"))
+
+    if genome_override:
+        override_path = Path(genome_override)
+
+        # Case 1 — user passed only filename: use assets/neat/genomes/<file>
+        if not override_path.is_absolute() and len(override_path.parts) == 1:
+            genome_path = Path(get_asset_path("assets/neat/genomes")) / override_path
+        else:
+            # User gave full path
+            genome_path = override_path
+
+        logger(f"🔍 Using genome: {genome_path}")
+
+    else:
+        genome_path = default_path
+        logger(f"🔍 Using DEFAULT genome: {genome_path}")
+
+    config_path = Path(get_asset_path("assets/neat/configs/neat_config.txt"))
+    print(f"✅ Loaded NEAT genome from: {genome_path}")
     try:
-        genome_path = get_asset_path("assets/neat/genomes/best_genome.pkl")
-        config_path = get_asset_path("assets/neat/configs/neat_config.txt")
-
-        brain = NeatNetwork(genome_path=str(genome_path), config_path=str(config_path))
-
-        logger(f"Loaded NEAT genome from: {genome_path}")
+        brain = NeatNetwork(
+            genome_path=str(genome_path),
+            config_path=str(config_path),
+        )
+        logger(f"✅ Loaded NEAT genome from: {genome_path}")
         return RuntimeNeatAgent(brain)
 
     except Exception as e:
-        logger(f"Failed to load NEAT genome: {e}")
+        logger(f"❌ Failed to load NEAT genome at {genome_path}: {e}")
         return None
 
 
 # ======================================================================
-# 🎮 Game Setup Helper
+# 🎮 Game Setup
 # ======================================================================
 
 
-def create_game(ui: UI, player_unit_names: list[str]) -> GameAPI:
-    """
-    Create a new game session with map, logic, renderer, and units.
-    """
-    # --- Initialize core game state ---
+def create_game(
+    ui: UI, player_unit_names: list[str], neat_agent: RuntimeNeatAgent
+) -> GameAPI:
+    """Initialize game systems and return a configured GameAPI."""
+
     game_state = GameState(
         width=GRID_W,
         height=GRID_H,
@@ -65,43 +112,30 @@ def create_game(ui: UI, player_unit_names: list[str]) -> GameAPI:
         tile_map=create_random_map(GRID_W, GRID_H),
     )
 
-    # --- Create supporting systems ---
     game_logic = GameLogic(game_state=game_state)
     game_renderer = ui.renderer
 
-    neat_agent = create_runtime_neat_agent()
-    if neat_agent is None:
-        # You said you don't want to use BasicAgent anymore.
-        # So if there's no NEAT genome, we abort game creation.
-        raise RuntimeError(
-            "No NEAT genome found (best_genome.pkl). "
-            "Please run NEAT training first to generate one."
-        )
-
-    agent = neat_agent
-
-    # --- Combine everything into the API interface ---
     game_api = GameAPI(
         game_ui=ui,
         renderer=game_renderer,
         game_board=game_state,
         game_logic=game_logic,
-        agent=agent,
+        agent=neat_agent,
         team1_type=TeamType.HUMAN,
         team2_type=TeamType.AI,
     )
 
-    # --- Add PLAYER units based on selection ---
+    # --- Add player units ---
     game_api.add_units(
         unit_name_list=player_unit_names,
         team_id=1,
         team=TeamType.HUMAN,
     )
 
-    # --- AI units ---
-    ai_draft_names: list[str] = get_ai_draft_units(funds=100)
+    # --- Add AI units ---
+    ai_units = get_ai_draft_units(funds=100)
     game_api.add_units(
-        unit_name_list=ai_draft_names,
+        unit_name_list=ai_units,
         team_id=2,
         team=TeamType.AI,
     )
@@ -115,32 +149,41 @@ def create_game(ui: UI, player_unit_names: list[str]) -> GameAPI:
 
 
 def main():
-    """Main entry function. Handles initialization, menus, and game loop."""
+    args = parse_args()
 
     pygame.init()
     pygame.font.init()
 
+    # Window icon
     icon_path = get_asset_path("assets/images/game_icon/roman-helmet-32.png")
     try:
         icon = pygame.image.load(icon_path)
         pygame.display.set_icon(icon)
     except Exception as e:
-        logger(f"[Warning] Could not load window icon: {e} -> {icon_path}")
+        logger(f"[Warning] Could not load window icon: {e}")
 
+    # Screen setup
     screen = pygame.display.set_mode((SCREEN_W + SIDEBAR_WIDTH, SCREEN_H))
     pygame.display.set_caption("Commanders' Arena")
 
     font = pygame.font.Font(None, 28)
-
-    game_renderer = Renderer(cell_size=CELL_SIZE)
-    ui = UI(cell_size=CELL_SIZE, renderer=game_renderer)
-
     clock = pygame.time.Clock()
+    renderer = Renderer(cell_size=CELL_SIZE)
+    ui = UI(cell_size=CELL_SIZE, renderer=renderer)
+
+    # Load NEAT agent
+    neat_agent = load_neat_agent(args.genome)
+    if neat_agent is None:
+        raise RuntimeError(
+            "❌ No usable NEAT genome found.\n"
+            "Run NEAT training first or specify one using --genome."
+        )
 
     running = True
     while running:
         play_menu_music()
         choice = ui.start_menu(screen, font)
+
         if choice == "quit":
             break
 
@@ -151,7 +194,7 @@ def main():
 
             create_log_file()
 
-            game_api = create_game(ui, selected_units)
+            game_api = create_game(ui, selected_units, neat_agent)
             engine = GameEngine(game_api, screen, font, clock)
 
             result = engine.run()

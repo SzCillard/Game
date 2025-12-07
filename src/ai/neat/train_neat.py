@@ -73,30 +73,36 @@ def override_population_size(config_path: str, new_size: int):
 # ---------------------------------------------------------
 # Utility: Save best genome to assets/neat/
 # ---------------------------------------------------------
-def save_best_genome(genome):
+def save_best_genome(genome, gen, pop, opp):
     """
     Saves:
-    - assets/neat/best_genome.pkl  (used by the game)
-    - assets/neat/best_genome_YYYYMMDD_HHMM.pkl (backup)
+    - assets/neat/genomes/best_genome.pkl       (stable file used by the game)
+    - assets/neat/genomes/best_genome_G{gen}_P{pop}_O{opp}_{stamp}.pkl
     """
 
-    # Resolve correct asset dir (works in EXE & dev mode)
+    # Resolve path correctly for dev + EXE
     asset_dir = Path(get_asset_path("assets/neat/genomes"))
 
-    # Ensure directory exists
     asset_dir.mkdir(parents=True, exist_ok=True)
 
+    # Main file used by runtime game
     final_path = asset_dir / "best_genome.pkl"
-    timestamp_path = asset_dir / f"best_genome_{datetime.now():%Y%m%d_%H%M}.pkl"
 
+    # Timestamped archive
+    stamp = datetime.now().strftime("%Y%m%d_%H%M")
+    backup_name = f"best_genome_G{gen}_P{pop}_O{opp}_{stamp}.pkl"
+    backup_path = asset_dir / backup_name
+
+    # Write primary file
     with open(final_path, "wb") as f:
         pickle.dump(genome, f)
 
-    with open(timestamp_path, "wb") as f:
+    # Write backup version
+    with open(backup_path, "wb") as f:
         pickle.dump(genome, f)
 
     print(f"🎉 Saved best genome → {final_path}")
-    print(f"🗂  Backup created → {timestamp_path}")
+    print(f"🗂  Backup created → {backup_path}")
 
 
 # ---------------------------------------------------------
@@ -133,7 +139,12 @@ def main():
     best = trainer.run(generations=args.generations)
 
     # Save the result
-    save_best_genome(best)
+    save_best_genome(
+        genome=best,
+        gen=args.generations,
+        pop=args.population_size,
+        opp=args.opponents,
+    )
 
     print("🏁 Training complete!")
 

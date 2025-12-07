@@ -70,11 +70,11 @@ def encode_state(game_state: dict[str, Any], team_id: int) -> np.ndarray:
     avg_hp_pct_ally = _safe_mean([u["health"] / u["max_hp"] for u in ally])
     avg_hp_pct_enemy = _safe_mean([u["health"] / u["max_hp"] for u in enemy])
 
-    #TODO: mozgasi hatotav pontok helyett 
+    # TODO: mozgasi hatotav pontok helyett
     avg_move_pts_ally = _safe_mean([u["move_points"] for u in ally]) / 10.0
     avg_move_pts_enemy = _safe_mean([u["move_points"] for u in enemy]) / 10.0
-    
-    #TODO: ez nem is kell 
+
+    # TODO: ez nem is kell
     frac_ally_can_attack = _safe_mean([1 - int(u["has_attacked"]) for u in ally])
     frac_enemy_can_attack = _safe_mean([1 - int(u["has_attacked"]) for u in enemy])
 
