@@ -47,7 +47,13 @@ def parse_args():
     parser.add_argument(
         "--max_turns", type=int, default=30, help="Max turns per match."
     )
-
+    parser.add_argument(
+        "--agent",
+        type=str,
+        default="NEATAgent",
+        choices=["NEATAgent", "MinimaxAgent", "MCTSAgent"],
+        help="Choose which agent to use during training.",
+    )
     return parser.parse_args()
 
 
@@ -73,7 +79,7 @@ def override_population_size(config_path: str, new_size: int):
 # ---------------------------------------------------------
 # Utility: Save best genome to assets/neat/
 # ---------------------------------------------------------
-def save_best_genome(genome, gen, pop, opp):
+def save_best_genome(genome, agent, gen, pop, opp):
     """
     Saves:
     - assets/neat/genomes/best_genome.pkl       (stable file used by the game)
@@ -90,7 +96,7 @@ def save_best_genome(genome, gen, pop, opp):
 
     # Timestamped archive
     stamp = datetime.now().strftime("%Y%m%d_%H%M")
-    backup_name = f"best_genome_G{gen}_P{pop}_O{opp}_{stamp}.pkl"
+    backup_name = f"best_genome_{agent}_G{gen}_P{pop}_O{opp}_{stamp}.pkl"
     backup_path = asset_dir / backup_name
 
     # Write primary file
@@ -133,6 +139,7 @@ def main():
         max_workers=args.max_workers,
         opponents_per_genome=args.opponents,
         max_turns=args.max_turns,
+        agent=args.agent,
     )
 
     # Run training
@@ -141,6 +148,7 @@ def main():
     # Save the result
     save_best_genome(
         genome=best,
+        agent=args.agent,
         gen=args.generations,
         pop=args.population_size,
         opp=args.opponents,

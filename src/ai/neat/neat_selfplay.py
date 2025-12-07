@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ai.agents.neat_agent import NeatAgent
 from ai.neat.neat_network import NeatNetwork
 from ai.utils.draft_helper import get_ai_draft_units
 
@@ -28,8 +27,6 @@ class SelfPlaySimulator:
         self.config = config
         self.base_api = base_api
         self.max_turns = max_turns
-
-        self.agent = NeatAgent()
 
         self.match_api: SimulationAPI = self.base_api.clone()
 
@@ -108,7 +105,7 @@ class SelfPlaySimulator:
     # ------------------------------------------------------------------
     # Main match loop
     # ------------------------------------------------------------------
-    def play_match(self, genome_a, genome_b):
+    def play_match(self, genome_a, genome_b, agent):
         drafted_unit_names = self._setup_match()
 
         net_a = NeatNetwork.from_genome(genome_a, self.config)
@@ -119,7 +116,7 @@ class SelfPlaySimulator:
         for t in range(self.max_turns):
             # --- Team 1 turn ---
             self.match_api.start_turn(1)
-            self.agent.execute_next_actions(self.match_api, net_a, team_id=1)
+            agent.execute_next_actions(self.match_api, net_a, team_id=1)
             if self.match_api.is_game_over():
                 turns_played = t + 1
                 stats = self._compute_stats(drafted_unit_names)
@@ -127,7 +124,7 @@ class SelfPlaySimulator:
 
             # --- Team 2 turn ---
             self.match_api.start_turn(2)
-            self.agent.execute_next_actions(self.match_api, net_b, team_id=2)
+            agent.execute_next_actions(self.match_api, net_b, team_id=2)
             if self.match_api.is_game_over():
                 turns_played = t + 1
                 stats = self._compute_stats(drafted_unit_names)

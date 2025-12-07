@@ -8,6 +8,7 @@ from pathlib import Path
 import neat
 import numpy as np
 
+from ai.agents.agent_factory import AgentFactory
 from ai.neat.neat_selfplay import SelfPlaySimulator
 from api.simulation_api import SimulationAPI
 from utils.path_utils import get_asset_path
@@ -25,6 +26,7 @@ class NeatTrainer:
         opponents_per_genome: int,
         max_workers: int,
         max_turns: int,
+        agent: str,
     ) -> None:
         # 🔥 Always resolve config path through get_asset_path()
         self.config_path = get_asset_path(config_path)
@@ -41,7 +43,7 @@ class NeatTrainer:
         self.max_workers = max_workers
         self.opponents_per_genome = opponents_per_genome
         self.max_turns = max_turns
-
+        self.agent_type = agent
         # 🔥 Save best genome here (safe in both dev + exe):
         self.model_output = Path(get_asset_path("assets/neat/genomes/best_genome.pkl"))
         self.model_output.parent.mkdir(parents=True, exist_ok=True)
@@ -89,6 +91,7 @@ class NeatTrainer:
         genome_a_data: tuple[int, bytes],
         genome_b_data: tuple[int, bytes],
         max_turns: int,
+        agent_type: str,
     ) -> tuple[int, int, int | None, int, dict[str, float]]:
         """
         Runs a single match in an isolated process.
@@ -115,8 +118,10 @@ class NeatTrainer:
         genome_b.__dict__.update(pickle.loads(g_b_bytes))
 
         sim = SelfPlaySimulator(config, game_api, max_turns=max_turns)
-        # print(f"Match between: {gid_a} and {gid_b} starts.")
-        winner, played_turns, stats = sim.play_match(genome_a, genome_b)
+
+        agent = AgentFactory.create(agent_type=agent_type)
+        print(f"Match between: {gid_a} and {gid_b} starts.")
+        winner, played_turns, stats = sim.play_match(genome_a, genome_b, agent=agent)
 
         return gid_a, gid_b, winner, played_turns, stats
 
@@ -132,7 +137,6 @@ class NeatTrainer:
           - Play 2 matches per opponent:
               A vs B   (A is team 1)
               B vs A   (B is team 1)
-          - Accumulate zero-sum fitness contributions.
           - Normalize each genome's fitness by the number of matches played.
         """
         # Reset NEAT's fitness for this generation
@@ -182,6 +186,7 @@ class NeatTrainer:
                         g_a_data,
                         g_b_data,
                         self.max_turns,
+                        self.agent_type,
                     )
                 )
 
@@ -215,11 +220,5 @@ class NeatTrainer:
             print("\nNo winner genome produced.")
         else:
             print(f"\n🏆 Winner genome {winner.key} ({winner.fitness:.4f})")
-
-            # 🔥 Save model in the safe assets/models folder
-            with open(self.model_output, "wb") as f:
-                pickle.dump(winner, f)
-
-            print(f"Saved best genome → {self.model_output}")
 
         return winner
