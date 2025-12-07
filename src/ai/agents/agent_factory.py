@@ -20,6 +20,6 @@ class AgentFactory:
             return MinimaxAgent(brain)
 
         if agent_type == AgentType.MCTSAgent.value:
-            return MCTSAgent()
+            return MCTSAgent(brain)
 
         raise ValueError(f"Unknown agent type: {agent_type}")
