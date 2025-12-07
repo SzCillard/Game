@@ -7,7 +7,7 @@ _messages: list[tuple[str, float]] = []
 
 def add_message(text: str):
     _messages.append((text, time.time()))
-    logger(text)
+    logger.info(text)
 
 
 def draw_messages(screen, font, screen_height: int, keep_secs: float = 4.0):

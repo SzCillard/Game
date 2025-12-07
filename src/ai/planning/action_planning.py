@@ -190,6 +190,14 @@ class ActionPlannerReversible:
 
         return best or []
 
+    def plan_all_sequences(self, game_board, team_id):
+        sim = SimulationAPI(game_board.fast_clone())
+        sim.start_turn(team_id)
+
+        sequences = []
+        self._dfs(team_id, sim, [], sequences)
+        return sequences
+
 
 class ActionPlanner:
     """

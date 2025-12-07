@@ -7,7 +7,7 @@ from backend.board import GameState, TileType
 from backend.units import Unit
 from utils.constants import DAMAGE_DISPLAY_TIME, DIRS, EPSILON
 from utils.helpers import calculate_damage, compute_min_cost_gs, manhattan
-from utils.messages import logger
+from utils.logging import logger
 
 
 class GameLogic:
@@ -84,7 +84,7 @@ class GameLogic:
 
     def move_unit(self, unit: Unit, to_x: int, to_y: int) -> bool:
         if not self.can_move(unit, to_x, to_y):
-            logger(
+            logger.info(
                 f"""{unit.name} (ID:{unit.id}) unit of
                 team:{unit.team} cannot move there [{to_x};{to_y}]."""
             )
@@ -104,7 +104,7 @@ class GameLogic:
         if unit.move_points <= EPSILON:
             unit.has_acted = True
 
-        logger(
+        logger.info(
             f"""{unit.name} (ID:{unit.id}) unit of team:{unit.team}
             moved to ({to_x},{to_y}), points left: {unit.move_points}."""
         )
@@ -168,7 +168,7 @@ class GameLogic:
         if attacker.attack_range > 1:
             # Ranged attack — no retaliation
             defender.health -= dmg
-            logger(
+            logger.info(
                 f"""{attacker.name} (ID:{attacker.id}) unit of team:{attacker.team}
                 shot {defender.name} (ID:{defender.id}) unit of team:{defender.team}
                 for {dmg}."""
@@ -176,7 +176,7 @@ class GameLogic:
         else:
             # Melee — defender can retaliate if still alive
             defender.health -= dmg
-            logger(
+            logger.info(
                 f"""{attacker.name} (ID:{attacker.id}) unit of team:{attacker.team}
                 hit {defender.name} (ID:{defender.id}) unit of team:{defender.team}
                 for {dmg}."""
@@ -185,7 +185,7 @@ class GameLogic:
                 retaliation = calculate_damage(defender, attacker)
                 attacker.health -= retaliation
                 if retaliation > 0:
-                    logger(
+                    logger.info(
                         f"""{defender.name} (ID:{defender.id}) unit of
                            team:{defender.team} retaliated for {retaliation}."""
                     )

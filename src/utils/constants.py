@@ -28,6 +28,12 @@ class Color(Enum):
     WATER = (0, 153, 153)
 
 
+class AgentType(Enum):
+    NEATAgent = "NEATAgent"
+    MinimaxAgent = "MinimaxAgent"
+    MCTSAgent = "MCTSAgent"
+
+
 class UnitType(Enum):
     SWORDSMAN = "Swordsman"
     ARCHER = "Archer"

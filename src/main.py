@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pygame
 
-from ai.agents.runtime_neat_agent import RuntimeNeatAgent
+from ai.agents.agent_factory import AgentFactory
 from ai.neat.neat_network import NeatNetwork
 from ai.utils.draft_helper import get_ai_draft_units
 from api.api import GameAPI
@@ -25,7 +25,7 @@ from utils.constants import (
     SIDEBAR_WIDTH,
     TeamType,
 )
-from utils.logging import create_log_file, logger
+from utils.logging import logger
 from utils.music_utils import play_menu_music
 from utils.path_utils import get_asset_path
 
@@ -43,6 +43,13 @@ def parse_args():
         default=None,
         help="Path to a specific NEAT genome to load.",
     )
+    parser.add_argument(
+        "--agent",
+        type=str,
+        default="NEATAgent",
+        choices=["NEATAgent", "MinimaxAgent", "MCTSAgent"],
+        help="Choose which agent to use during training.",
+    )
     return parser.parse_args()
 
 
@@ -51,7 +58,7 @@ def parse_args():
 # ======================================================================
 
 
-def load_neat_agent(genome_override: str | None) -> RuntimeNeatAgent | None:
+def load_neat_agent(genome_override: str | None, agent):
     """
     Load NEAT genome.
 
@@ -74,11 +81,11 @@ def load_neat_agent(genome_override: str | None) -> RuntimeNeatAgent | None:
             # User gave full path
             genome_path = override_path
 
-        logger(f"🔍 Using genome: {genome_path}")
+        logger.info(f"🔍 Using genome: {genome_path}")
 
     else:
         genome_path = default_path
-        logger(f"🔍 Using DEFAULT genome: {genome_path}")
+        logger.info(f"🔍 Using DEFAULT genome: {genome_path}")
 
     config_path = Path(get_asset_path("assets/neat/configs/neat_config.txt"))
     print(f"✅ Loaded NEAT genome from: {genome_path}")
@@ -87,11 +94,12 @@ def load_neat_agent(genome_override: str | None) -> RuntimeNeatAgent | None:
             genome_path=str(genome_path),
             config_path=str(config_path),
         )
-        logger(f"✅ Loaded NEAT genome from: {genome_path}")
-        return RuntimeNeatAgent(brain)
+        logger.info(f"✅ Loaded NEAT genome from: {genome_path}")
+        agent = AgentFactory.create(agent, brain)
+        return agent
 
     except Exception as e:
-        logger(f"❌ Failed to load NEAT genome at {genome_path}: {e}")
+        logger.info(f"❌ Failed to load NEAT genome at {genome_path}: {e}")
         return None
 
 
@@ -100,9 +108,7 @@ def load_neat_agent(genome_override: str | None) -> RuntimeNeatAgent | None:
 # ======================================================================
 
 
-def create_game(
-    ui: UI, player_unit_names: list[str], neat_agent: RuntimeNeatAgent
-) -> GameAPI:
+def create_game(ui: UI, player_unit_names: list[str], agent) -> GameAPI:
     """Initialize game systems and return a configured GameAPI."""
 
     game_state = GameState(
@@ -120,7 +126,7 @@ def create_game(
         renderer=game_renderer,
         game_board=game_state,
         game_logic=game_logic,
-        agent=neat_agent,
+        agent=agent,
         team1_type=TeamType.HUMAN,
         team2_type=TeamType.AI,
     )
@@ -160,7 +166,7 @@ def main():
         icon = pygame.image.load(icon_path)
         pygame.display.set_icon(icon)
     except Exception as e:
-        logger(f"[Warning] Could not load window icon: {e}")
+        logger.info(f"[Warning] Could not load window icon: {e}")
 
     # Screen setup
     screen = pygame.display.set_mode((SCREEN_W + SIDEBAR_WIDTH, SCREEN_H))
@@ -171,9 +177,9 @@ def main():
     renderer = Renderer(cell_size=CELL_SIZE)
     ui = UI(cell_size=CELL_SIZE, renderer=renderer)
 
-    # Load NEAT agent
-    neat_agent = load_neat_agent(args.genome)
-    if neat_agent is None:
+    # Load agent
+    agent = load_neat_agent(args.genome, args.agent)
+    if agent is None:
         raise RuntimeError(
             "❌ No usable NEAT genome found.\n"
             "Run NEAT training first or specify one using --genome."
@@ -188,13 +194,15 @@ def main():
             break
 
         if choice == "start_game":
+            logger.info("New match started.")
+
             selected_units = ui.draft_menu(screen)
             if not selected_units:
                 continue
 
-            create_log_file()
+            # create_log_file()
 
-            game_api = create_game(ui, selected_units, neat_agent)
+            game_api = create_game(ui, selected_units, agent)
             engine = GameEngine(game_api, screen, font, clock)
 
             result = engine.run()
@@ -207,7 +215,7 @@ def main():
                 continue
 
     pygame.quit()
-    logger("Exited game loop")
+    logger.info("Exited game loop")
 
 
 if __name__ == "__main__":

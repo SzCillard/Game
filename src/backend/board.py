@@ -358,5 +358,5 @@ def create_random_map(w: int, h: int) -> list[list[TileType]]:
 
     map_type = random.choice(list(MAP_GENERATORS.keys()))
     if evolution_run is False:
-        logger(f"🌍 Using map type: {map_type}")
+        logger.info(f"🌍 Using map type: {map_type}")
     return MAP_GENERATORS[map_type](w, h)

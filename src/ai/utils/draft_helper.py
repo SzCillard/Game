@@ -24,7 +24,7 @@ def ai_draft_basic(
     strategies: list[str] = ["balanced", "rush", "defense", "ranged"]
     choice: str = random.choice(strategies)
 
-    logger(f"AI draft strategy chosen: {choice}")
+    logger.info(f"AI draft strategy chosen: {choice}")
 
     selected: list[str] = []
     funds_left: int = funds  # for example 100
@@ -65,7 +65,7 @@ def ai_draft_basic(
             probabilities = {k: dict(v) for k, v in probabilities.items()}  # type: ignore[assignment]
             probabilities[choice].pop(chosen, None)
 
-    logger(f"AI draft completed. Units selected: {selected}")
+    logger.info(f"AI draft completed. Units selected: {selected}")
 
     return selected
 
