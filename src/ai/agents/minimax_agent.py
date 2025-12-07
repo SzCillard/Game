@@ -14,7 +14,12 @@ from utils.logging import logger
 class MinimaxAgent:
     """
     Minimax-based agent that searches over *full-turn* action sequences.
-    Uses SimulationAPI for simulation so we never clone UI / renderer / pygame objects.
+
+    Key points:
+    - Uses SimulationAPI so we never clone UI / renderer / pygame objects.
+    - Uses ActionPlannerReversible to generate full-turn sequences.
+    - Uses a per-team sequence cache so DFS is done ONCE per team per turn.
+      All deeper minimax nodes reuse those sequences, only re-simulating them.
     """
 
     def __init__(
@@ -28,6 +33,7 @@ class MinimaxAgent:
         self.depth = depth
         self.child_limit = child_limit
 
+        # Planner generates full-turn sequences with reversible DFS
         self.planner = ActionPlannerReversible(
             max_sets=max_sets,
             max_branching=max_branching,
@@ -35,6 +41,10 @@ class MinimaxAgent:
         )
 
         self.brain = brain
+
+        # ✅ Cache of sequences per team_id for the current move
+        #    { team_id: list[list[action_dict]] }
+        self._sequence_cache: dict[int, list[list[dict]]] = {}
 
         logger.info(
             f"[MinimaxAgent] Initialized (depth={depth}, "
@@ -46,53 +56,46 @@ class MinimaxAgent:
     # Evaluation
     # ----------------------------------------------------------------------
     def _eval_snapshot(self, snapshot: dict, team_id: int) -> float:
+        """Evaluate board snapshot with NEAT brain for given team_id."""
         state = encode_state(snapshot, team_id)
         return float(self.brain.predict(state)[0])
 
     # ----------------------------------------------------------------------
-    # Sequence scoring (for pruning)
+    # Cached sequence retrieval
     # ----------------------------------------------------------------------
-    def _score_sequences(
-        self,
-        sim,
-        acting_team: int,
-        sequences: list[list[dict]],
-        eval_team: int,
-    ) -> list[tuple[list[dict], float]]:
-        logger.debug(
-            f"[MinimaxAgent] Scoring {len(sequences)} sequences for team {acting_team}"
+    def _get_sequences_cached(self, team_id: int, sim) -> list[list[dict]]:
+        """
+        Return full-turn sequences for `team_id`, using a cache.
+
+        The first time this is called in a move for a given team:
+          - We run DFS (plan_sequences) from the provided sim.
+          - We cache the resulting list of sequences.
+
+        All further calls for that team_id reuse the cached sequences, which
+        we then re-simulate from whatever sim is passed in.
+        """
+        if team_id in self._sequence_cache:
+            return self._sequence_cache[team_id]
+
+        # Generate sequences ONCE (expensive DFS)
+        start = time.time()
+        # sequences = self.planner.plan_sequences(sim.game_board, team_id)
+        sequences = self.planner.plan_sequences(
+            game_board=sim.game_board,
+            team_id=team_id,
+            # eval_fn=lambda snap: self._eval_snapshot(snap, team_id),
         )
 
-        scored = []
-        start = time.time()
-
-        for idx, seq in enumerate(sequences):
-            replay = sim.clone()
-            replay.start_turn(acting_team)
-
-            for act in seq:
-                replay.apply_action(act)
-
-            score = self._eval_snapshot(replay.get_board_snapshot(), eval_team)
-            scored.append((seq, score))
-
-            logger.debug(
-                f"[MinimaxAgent] Seq #{idx} | len={len(seq)} | score={score:.4f}"
-            )
-
-        scored.sort(key=lambda x: x[1], reverse=True)
-
-        if self.child_limit:
-            scored = scored[: self.child_limit]
+        self._sequence_cache[team_id] = sequences
 
         logger.info(
-            f"[MinimaxAgent] Sequence scoring done "
-            f"({len(scored)} kept, {time.time() - start:.3f}s)"
+            f"[MinimaxAgent] Cached {len(sequences)} sequences for team {team_id} "
+            f"(DFS took {time.time() - start:.3f}s)"
         )
-        return scored
+        return sequences
 
     # ----------------------------------------------------------------------
-    # Child expansion
+    # Child expansion (uses cached sequences)
     # ----------------------------------------------------------------------
     def _get_children(
         self,
@@ -100,13 +103,25 @@ class MinimaxAgent:
         acting_team: int,
         eval_team: int,
     ) -> list[tuple[list[dict], Any]]:
+        """
+        For this node:
+          1. Get full-turn sequences for acting_team (from cache or DFS once).
+          2. For each sequence:
+               - simulate it once from the current sim
+               - evaluate the resulting state with NN
+               - keep the resulting SimulationAPI
+          3. Sort by score and keep top `child_limit`.
+
+        This is the main performance hotspot: re-simulation is relatively
+        cheap, DFS is very expensive—so we cache DFS results per team.
+        """
         logger.debug(f"[MinimaxAgent] Expanding children (team={acting_team})")
 
         start = time.time()
-        sequences = self.planner.plan_all_sequences(sim.game_board, acting_team)
+        sequences = self._get_sequences_cached(acting_team, sim)
 
         logger.info(
-            f"[MinimaxAgent] Generated {len(sequences)} full-turn sequences "
+            f"[MinimaxAgent] Using {len(sequences)} cached sequences "
             f"for team {acting_team}"
         )
 
@@ -118,28 +133,40 @@ class MinimaxAgent:
                 f"[MinimaxAgent] ⚠ HIGH SEQUENCE COUNT ({len(sequences)}) → slow search"
             )
 
-        scored = self._score_sequences(sim, acting_team, sequences, eval_team)
-
         opponent = 1 if acting_team == 2 else 2
-        children = []
+        scored_children: list[tuple[list[dict], float, Any]] = []
 
-        for seq, _ in scored:
+        for idx, seq in enumerate(sequences):
+            # Simulate this sequence from the CURRENT sim state
             replay = sim.clone()
             replay.start_turn(acting_team)
 
             for act in seq:
                 replay.apply_action(act)
 
+            # If game continues, advance to opponent's turn
             if not replay.is_game_over():
                 replay.start_turn(opponent)
 
-            children.append((seq, replay))
+            score = self._eval_snapshot(replay.get_board_snapshot(), eval_team)
+            scored_children.append((seq, score, replay))
+
+            logger.debug(
+                f"[MinimaxAgent] Seq #{idx} | len={len(seq)} | score={score:.4f}"
+            )
+
+        # Sort by score descending (best first)
+        scored_children.sort(key=lambda x: x[1], reverse=True)
+
+        if self.child_limit:
+            scored_children = scored_children[: self.child_limit]
+
+        children = [(seq, replay) for (seq, _score, replay) in scored_children]
 
         logger.info(
             f"[MinimaxAgent] Built {len(children)} children "
             f"in {time.time() - start:.3f}s"
         )
-
         return children
 
     # ----------------------------------------------------------------------
@@ -148,13 +175,15 @@ class MinimaxAgent:
     def execute_next_actions(self, game_api, team_id: int) -> None:
         logger.info(f"[MinimaxAgent] === AI TURN START (team={team_id}) ===")
 
-        # Child generator wrapper
+        # 🔄 Reset sequence cache for this full AI move
+        self._sequence_cache.clear()
+
+        # Child generator wrapper: minimax calls this
         def child_gen(sim, acting_team):
             return self._get_children(sim, acting_team, team_id)
 
         # ----------------------------------------------------
-        # 🔥 DO NOT USE game_api.clone()
-        #    Use SimulationAPI to avoid pygame deepcopy crash
+        # Use SimulationAPI to avoid pygame deepcopy crash
         # ----------------------------------------------------
         sim_root = SimulationAPI(game_api.game_board.fast_clone())
 
@@ -182,13 +211,14 @@ class MinimaxAgent:
             )
 
             t_child = time.time()
-            score = self.minimax(
+            score = self._minimax(
                 sim=child_sim,
                 team_id=team_id,
                 depth=self.depth,
                 alpha=-inf,
                 beta=inf,
                 is_max=False,  # opponent acts next
+                child_gen=child_gen,
             )
 
             logger.info(
@@ -220,9 +250,9 @@ class MinimaxAgent:
         self.execute_next_actions(game_api, team_id)
 
     # ----------------------------------------------------------------------
-    # Minimax with alpha-beta pruning
+    # Minimax with alpha-beta pruning (as an instance method)
     # ----------------------------------------------------------------------
-    def minimax(
+    def _minimax(
         self,
         sim,
         team_id: int,
@@ -230,8 +260,16 @@ class MinimaxAgent:
         alpha: float,
         beta: float,
         is_max: bool,
-    ):
-        """Minimax with alpha-beta pruning as an agent method."""
+        child_gen,
+    ) -> float:
+        """
+        Minimax with alpha-beta pruning.
+
+        - `team_id` is the MAX player.
+        - `is_max` tells whether this node is MAX or MIN.
+        - `child_gen(sim, acting_team)` returns [(sequence, new_sim), ...]
+          and internally reuses cached sequences per team.
+        """
 
         # Terminal node
         if depth == 0 or sim.is_game_over():
@@ -239,8 +277,8 @@ class MinimaxAgent:
 
         acting_team = team_id if is_max else (1 if team_id == 2 else 2)
 
-        # Generate children
-        children = self._get_children(sim, acting_team, team_id)
+        # Generate children using cached sequences
+        children = child_gen(sim, acting_team)
         if not children:
             return self._eval_snapshot(sim.get_board_snapshot(), team_id)
 
@@ -250,16 +288,19 @@ class MinimaxAgent:
         if is_max:
             best = -inf
             for _, child_sim in children:
-                value = self.minimax(
+                value = self._minimax(
                     sim=child_sim,
                     team_id=team_id,
                     depth=depth - 1,
                     alpha=alpha,
                     beta=beta,
                     is_max=False,
+                    child_gen=child_gen,
                 )
-                best = max(best, value)
-                alpha = max(alpha, best)
+                if value > best:
+                    best = value
+                if best > alpha:
+                    alpha = best
                 if alpha >= beta:
                     break
             return best
@@ -267,19 +308,21 @@ class MinimaxAgent:
         # -------------------------------------------------------
         # MIN node
         # -------------------------------------------------------
-        else:
-            best = inf
-            for _, child_sim in children:
-                value = self.minimax(
-                    sim=child_sim,
-                    team_id=team_id,
-                    depth=depth - 1,
-                    alpha=alpha,
-                    beta=beta,
-                    is_max=True,
-                )
-                best = min(best, value)
-                beta = min(beta, best)
-                if alpha >= beta:
-                    break
-            return best
+        best = inf
+        for _, child_sim in children:
+            value = self._minimax(
+                sim=child_sim,
+                team_id=team_id,
+                depth=depth - 1,
+                alpha=alpha,
+                beta=beta,
+                is_max=True,
+                child_gen=child_gen,
+            )
+            if value < best:
+                best = value
+            if best < beta:
+                beta = best
+            if alpha >= beta:
+                break
+        return best
