@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ai.neat.neat_network import NeatNetwork
 from ai.utils.nn_utils import encode_state
 
 if TYPE_CHECKING:
@@ -12,8 +13,10 @@ from ai.planning.action_planning import ActionPlannerReversible
 
 
 class NeatAgent:
-    def __init__(self, max_sets=500, max_branching=14, exploration_rate=0.05):
-        self.brain = None
+    def __init__(
+        self, brain: NeatNetwork, max_sets=500, max_branching=14, exploration_rate=0.05
+    ):
+        self.brain = brain
         self.planner = ActionPlannerReversible(
             max_sets=max_sets,
             max_branching=max_branching,
@@ -27,17 +30,17 @@ class NeatAgent:
     # State Encoding & Evaluation
     # ------------------------------------------------------------------
 
-    def _eval(self, net, snapshot, team_id):
+    def _eval(self, snapshot, team_id):
         state = encode_state(snapshot, team_id)
-        return float(net.predict(state)[0])
+        return float(self.brain.predict(state)[0])
 
-    def execute_next_actions(self, game_api, net, team_id):
+    def execute_next_actions(self, game_api, team_id):
         board = game_api.game_board
 
         actions = self.planner.plan(
             board,
             team_id,
-            eval_fn=lambda snap: self._eval(net, snap, team_id),
+            eval_fn=lambda snap: self._eval(snap, team_id),
         )
 
         for act in actions:

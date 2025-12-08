@@ -8,7 +8,6 @@ from pathlib import Path
 import neat
 import numpy as np
 
-from ai.agents.agent_factory import AgentFactory
 from ai.neat.neat_selfplay import SelfPlaySimulator
 from api.simulation_api import SimulationAPI
 from utils.path_utils import get_asset_path
@@ -119,9 +118,10 @@ class NeatTrainer:
 
         sim = SelfPlaySimulator(config, game_api, max_turns=max_turns)
 
-        agent = AgentFactory.create(agent_type=agent_type)
         print(f"Match between: {gid_a} and {gid_b} starts.")
-        winner, played_turns, stats = sim.play_match(genome_a, genome_b, agent=agent)
+        winner, played_turns, stats = sim.play_match(
+            genome_a, genome_b, agent_type=agent_type
+        )
 
         return gid_a, gid_b, winner, played_turns, stats
 
