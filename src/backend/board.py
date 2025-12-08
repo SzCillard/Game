@@ -56,6 +56,60 @@ class GameState:
     def clone(self):
         return copy.deepcopy(self)
 
+    @staticmethod
+    def from_snapshot(snapshot: dict) -> "GameState":
+        """
+        Rebuild a full GameState from a snapshot produced by get_snapshot().
+        Used by MCTS multiprocessing workers.
+        """
+
+        width = len(snapshot["tiles"][0])
+        height = len(snapshot["tiles"])
+
+        # ❗ cell_size cannot be recovered from snapshot — use the default
+        # (same as your GameAPI does)
+        cell_size = 48  # or whatever value your game uses
+
+        # Build board
+        gs = GameState(
+            width=width,
+            height=height,
+            cell_size=cell_size,
+            tile_map=copy.deepcopy(snapshot["tiles"]),
+            units=[],
+        )
+
+        # Rebuild units
+        for u in snapshot["units"]:
+            cls = GameState.unit_classes[u["name"]]
+            unit = cls(
+                x=u["x"],
+                y=u["y"],
+                team_id=u["team_id"],
+                team=u["team"],
+            )
+
+            # restore stats
+            unit.id = u["id"]
+            unit.health = u["health"]
+            unit.max_hp = u["max_hp"]
+            unit.armor = u["armor"]
+            unit.attack_power = u["attack_power"]
+            unit.attack_range = u["attack_range"]
+            unit.move_range = u["move_range"]
+            unit.move_points = u["move_points"]
+
+            unit.has_attacked = u["has_attacked"]
+            unit.has_acted = u["has_acted"]
+
+            # UI damage feedback (if any)
+            unit.last_damage = u.get("last_damage", 0)
+            unit.damage_timer = u.get("damage_timer", 0)
+
+            gs.units.append(unit)
+
+        return gs
+
     # ------------------------------
     # Basic Grid Operations
     # ------------------------------

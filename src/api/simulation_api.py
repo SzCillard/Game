@@ -18,3 +18,16 @@ class SimulationAPI(GameAPI):
     def clone(self):
         new_board = self.game_board.fast_clone()
         return SimulationAPI(new_board)
+
+    @staticmethod
+    def from_snapshot(snapshot: dict) -> "SimulationAPI":
+        """
+        Rebuild SimulationAPI from a board snapshot.
+        Used for multiprocessing workers in MCTS.
+        """
+        # Create empty board and load snapshot into it
+        from backend.board import GameState
+
+        board = GameState.from_snapshot(snapshot)
+        sim = SimulationAPI(board)
+        return sim
