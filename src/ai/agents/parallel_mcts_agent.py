@@ -27,8 +27,8 @@ class MCTSAgent:
     def __init__(
         self,
         brain: NeatNetwork,
-        max_sets=200,
-        max_branching=20,
+        dfs_action_sets_limit=200,
+        dfs_branching_limit=20,
         max_root_children=8,
         iterations=80,
         rollout_turns=2,
@@ -43,8 +43,8 @@ class MCTSAgent:
         self.max_workers = max_workers  # 🔥 store worker count
 
         self.planner = ActionPlannerReversible(
-            max_sets=max_sets,
-            max_branching=max_branching,
+            dfs_action_sets_limit=dfs_action_sets_limit,
+            dfs_branching_limit=dfs_branching_limit,
             exploration_rate=0.0,
         )
 

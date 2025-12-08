@@ -40,9 +40,14 @@ class _SimulationAPI:
 
 
 class ActionPlannerReversible:
-    def __init__(self, max_sets: int, max_branching: int, exploration_rate: float):
-        self.max_sets = max_sets
-        self.max_branching = max_branching
+    def __init__(
+        self,
+        dfs_action_sets_limit: int,
+        dfs_branching_limit: int,
+        exploration_rate: float,
+    ):
+        self.dfs_action_sets_limit = dfs_action_sets_limit
+        self.dfs_branching_limit = dfs_branching_limit
         self.exploration_rate = exploration_rate
 
     # ------------------------------------------------------------
@@ -128,7 +133,7 @@ class ActionPlannerReversible:
     # DFS recursion
     # ------------------------------------------------------------
     def _dfs(self, team_id, sim, actions, out):
-        if len(out) >= self.max_sets:
+        if len(out) >= self.dfs_action_sets_limit:
             return
 
         if sim.check_turn_end(team_id):
@@ -141,7 +146,7 @@ class ActionPlannerReversible:
             return
 
         random.shuffle(legal)
-        legal = legal[: self.max_branching]
+        legal = legal[: self.dfs_branching_limit]
 
         for act in legal:
             ok, token = self._apply_action_reversible(sim, act)
@@ -154,7 +159,7 @@ class ActionPlannerReversible:
 
             self._undo(sim, token)
 
-            if len(out) >= self.max_sets:
+            if len(out) >= self.dfs_action_sets_limit:
                 break
 
     # ------------------------------------------------------------
@@ -204,18 +209,18 @@ class ActionPlanner:
     Pure DFS-based full-turn planner.
     No depth limit.
     Limits via:
-        - max_branching
-        - max_sets
+        - dfs_branching_limit
+        - dfs_action_sets_limit
     """
 
     def __init__(
         self,
-        max_sets: int,
-        max_branching: int,
+        dfs_action_sets_limit: int,
+        dfs_branching_limit: int,
         exploration_rate: float,
     ):
-        self.max_sets = max_sets
-        self.max_branching = max_branching
+        self.dfs_action_sets_limit = dfs_action_sets_limit
+        self.dfs_branching_limit = dfs_branching_limit
         self.exploration_rate = exploration_rate
 
     # ------------------------------------------
@@ -228,7 +233,7 @@ class ActionPlanner:
         actions: list[dict[str, Any]],
         out_sequences: list[list[dict[str, Any]]],
     ):
-        if len(out_sequences) >= self.max_sets:
+        if len(out_sequences) >= self.dfs_action_sets_limit:
             return
 
         if sim.check_turn_end(team_id):
@@ -241,10 +246,10 @@ class ActionPlanner:
             return
 
         random.shuffle(legal)
-        legal = legal[: self.max_branching]
+        legal = legal[: self.dfs_branching_limit]
 
         for act in legal:
-            if len(out_sequences) >= self.max_sets:
+            if len(out_sequences) >= self.dfs_action_sets_limit:
                 break
 
             nxt = sim.clone()
@@ -302,15 +307,15 @@ class BeamSearchPlannerFullTurn:
     - Generates *full* action sequences for a single turn of `team_id`.
     - Uses beam search to limit branching:
         - At each step, keep only `beam_width` best partial sequences.
-        - For each node, branch on at most `max_branching` legal actions.
+        - For each node, branch on at most `dfs_branching_limit` legal actions.
     - A sequence is considered "finished" when:
         - sim.check_turn_end(team_id) is True, or
         - there are no legal actions left.
     """
 
-    def __init__(self, beam_width: int, max_branching: int):
+    def __init__(self, beam_width: int, dfs_branching_limit: int):
         self.beam_width = beam_width
-        self.max_branching = max_branching
+        self.dfs_branching_limit = dfs_branching_limit
 
     def plan_sequences(
         self,
@@ -355,7 +360,7 @@ class BeamSearchPlannerFullTurn:
                     continue
 
                 random.shuffle(legal)
-                legal = legal[: self.max_branching]
+                legal = legal[: self.dfs_branching_limit]
 
                 for act in legal:
                     child_sim = sim.clone()

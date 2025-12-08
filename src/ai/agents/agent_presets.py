@@ -9,27 +9,27 @@ Each preset becomes a separate "agent" entry in the round robin.
 # -------------------------
 MCTS_PRESETS = {
     "MCTS_default": {
-        "max_sets": 200,
-        "max_branching": 20,
-        "max_root_children": 8,
-        "iterations": 80,
-        "rollout_turns": 2,
+        "dfs_action_sets_limit": 300,
+        "dfs_branching_limit": 20,
+        "max_root_children": 10,
+        "iterations": 100,
+        "rollout_turns": 3,
         "c_puct": 1.4,
     },
     "MCTS_fast": {
-        "max_sets": 100,
-        "max_branching": 10,
+        "dfs_action_sets_limit": 100,
+        "dfs_branching_limit": 10,
         "max_root_children": 4,
         "iterations": 30,
         "rollout_turns": 1,
         "c_puct": 1.2,
     },
     "MCTS_deep": {
-        "max_sets": 300,
-        "max_branching": 30,
-        "max_root_children": 12,
+        "dfs_action_sets_limit": 500,
+        "dfs_branching_limit": 30,
+        "max_root_children": 20,
         "iterations": 150,
-        "rollout_turns": 3,
+        "rollout_turns": 4,
         "c_puct": 1.6,
     },
 }
@@ -40,15 +40,15 @@ MCTS_PRESETS = {
 MINIMAX_PRESETS = {
     "Minimax_default": {
         "depth": 2,
-        "branching_limit": 6,
+        "child_limit": 2,
     },
     "Minimax_deep": {
         "depth": 3,
-        "branching_limit": 8,
+        "child_limit": 3,
     },
     "Minimax_wide": {
         "depth": 2,
-        "branching_limit": 16,
+        "child_limit": 4,
     },
 }
 

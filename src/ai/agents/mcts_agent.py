@@ -43,8 +43,8 @@ class MCTSAgent:
     def __init__(
         self,
         brain: NeatNetwork,
-        max_sets: int = 200,  # DFS limit for sequence generation
-        max_branching: int = 20,  # max actions per DFS node
+        dfs_action_sets_limit: int = 200,  # DFS limit for sequence generation
+        dfs_branching_limit: int = 20,  # max actions per DFS node
         max_root_children: int = 8,  # how many root moves to keep
         iterations: int = 80,  # MCTS iterations per AI move
         rollout_turns: int = 2,  # how many full turns in a rollout
@@ -53,8 +53,8 @@ class MCTSAgent:
         self.brain = brain
 
         self.planner = ActionPlannerReversible(
-            max_sets=max_sets,
-            max_branching=max_branching,
+            dfs_action_sets_limit=dfs_action_sets_limit,
+            dfs_branching_limit=dfs_branching_limit,
             exploration_rate=0.0,
         )
 
@@ -65,7 +65,8 @@ class MCTSAgent:
 
         logger.info(
             "[MCTSAgent] Initialized "
-            f"(max_sets={max_sets}, max_branching={max_branching}, "
+            f"""(dfs_action_sets_limit={dfs_action_sets_limit},
+            dfs_branching_limit={dfs_branching_limit}, """
             f"max_root_children={max_root_children}, iterations={iterations}, "
             f"rollout_turns={rollout_turns}, c_puct={c_puct})"
         )

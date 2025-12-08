@@ -77,17 +77,28 @@ def _run_match_worker(args):
     sim.add_units(team1_names, 1, TeamType.AI)
     sim.add_units(team2_names, 2, TeamType.AI)
 
-    # Play match
+    # Timing accumulators
+    times_A = []
+    times_B = []
+
     turns = 0
     for t in range(max_turns):
+        # --- Team A turn ---
         sim.start_turn(1)
+        t0 = time.perf_counter()
         agentA.play_turn(sim, 1)
+        times_A.append(time.perf_counter() - t0)
+
         if sim.is_game_over():
             turns = t + 1
             break
 
+        # --- Team B turn ---
         sim.start_turn(2)
+        t0 = time.perf_counter()
         agentB.play_turn(sim, 2)
+        times_B.append(time.perf_counter() - t0)
+
         if sim.is_game_over():
             turns = t + 1
             break
@@ -95,9 +106,11 @@ def _run_match_worker(args):
         turns = t + 1
 
     winner = sim.get_winner()
-
-    # Compute NEAT-style stats
     stats = _compute_neat_stats(sim, team1_names, team2_names)
+
+    # Average compute time per turn
+    avg_turn_time_A = sum(times_A) / max(1, len(times_A))
+    avg_turn_time_B = sum(times_B) / max(1, len(times_B))
 
     return {
         "agentA": nameA,
@@ -105,6 +118,9 @@ def _run_match_worker(args):
         "winner": winner,
         "turns": turns,
         **stats,
+        # 🆕 NEW minimal metrics
+        "avg_turn_time_A": avg_turn_time_A,
+        "avg_turn_time_B": avg_turn_time_B,
     }
 
 
@@ -178,6 +194,8 @@ class RoundRobinBenchmark:
             "agentB",
             "winner",
             "turns",
+            "avg_turn_time_A",
+            "avg_turn_time_B",
             "initial_unit_count_team1",
             "initial_unit_count_team2",
             "alive1",

@@ -26,8 +26,8 @@ class MinimaxAgent:
         self,
         brain: NeatNetwork,
         depth: int = 2,
-        max_sets: int = 200,
-        max_branching: int = 12,
+        dfs_action_sets_limit: int = 200,
+        dfs_branching_limit: int = 12,
         child_limit: int = 6,
     ) -> None:
         self.depth = depth
@@ -35,8 +35,8 @@ class MinimaxAgent:
 
         # Planner generates full-turn sequences with reversible DFS
         self.planner = ActionPlannerReversible(
-            max_sets=max_sets,
-            max_branching=max_branching,
+            dfs_action_sets_limit=dfs_action_sets_limit,
+            dfs_branching_limit=dfs_branching_limit,
             exploration_rate=0.0,
         )
 
@@ -48,7 +48,8 @@ class MinimaxAgent:
 
         logger.info(
             f"[MinimaxAgent] Initialized (depth={depth}, "
-            f"max_sets={max_sets}, max_branching={max_branching}, "
+            f"""dfs_action_sets_limit={dfs_action_sets_limit},
+            dfs_branching_limit={dfs_branching_limit}, """
             f"child_limit={child_limit})"
         )
 

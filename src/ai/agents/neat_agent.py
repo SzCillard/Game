@@ -14,12 +14,16 @@ from ai.planning.action_planning import ActionPlannerReversible
 
 class NeatAgent:
     def __init__(
-        self, brain: NeatNetwork, max_sets=500, max_branching=14, exploration_rate=0.05
+        self,
+        brain: NeatNetwork,
+        dfs_action_sets_limit=500,
+        dfs_branching_limit=30,
+        exploration_rate=0.05,
     ):
         self.brain = brain
         self.planner = ActionPlannerReversible(
-            max_sets=max_sets,
-            max_branching=max_branching,
+            dfs_action_sets_limit=dfs_action_sets_limit,
+            dfs_branching_limit=dfs_branching_limit,
             exploration_rate=exploration_rate,
         )
 
