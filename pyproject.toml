@@ -14,12 +14,10 @@ packages = [
     { include = "variables", from = "src" },
 ]
 
-
-
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
-tensorflow = "^2.15.0"      # Compatible with Python 3.11
-numpy = "^1.26.4"            # Matches TensorFlow requirements
+tensorflow = "^2.15.0"
+numpy = "^1.26.4"
 pandas = "^2.3.1"
 matplotlib = "^3.8.4"
 seaborn = "^0.13.2"
@@ -32,6 +30,9 @@ black = "^25.1.0"
 isort = "^6.0.1"
 pre-commit = "^4.3.0"
 ruff = "^0.12.9"
+notebook = "^7.2.0"
+ipykernel = "^6.29.0"
+
 
 [build-system]
 requires = ["poetry-core"]
@@ -51,3 +52,4 @@ quote-style = "double"
 [tool.poetry.scripts]
 game = "main:main"
 train-neat = "ai.neat.train_neat:main"
+benchmark = "ai.statistics.benchmark_run:main"
