@@ -45,3 +45,6 @@ class NeatAgent:
 
         for act in actions:
             game_api.apply_action(act)
+
+    def play_turn(self, game_api, team_id: int):
+        self.execute_next_actions(game_api=game_api, team_id=team_id)

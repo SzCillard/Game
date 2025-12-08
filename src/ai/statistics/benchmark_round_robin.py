@@ -52,15 +52,14 @@ def _compute_neat_stats(sim: SimulationAPI, team1_names, team2_names):
 # ======================================================================
 def _run_match_worker(args):
     agentA_info, agentB_info, max_turns, config_path = args
-    (nameA, brainA_path, agentA_type) = agentA_info
-    (nameB, brainB_path, agentB_type) = agentB_info
+    (nameA, brainA_path, agentA_type, paramsA) = agentA_info
+    (nameB, brainB_path, agentB_type, paramsB) = agentB_info
 
-    # Correct NEAT loading
     brainA = NeatNetwork(genome_path=str(brainA_path), config_path=str(config_path))
     brainB = NeatNetwork(genome_path=str(brainB_path), config_path=str(config_path))
 
-    agentA = AgentFactory.create(agentA_type, brainA)
-    agentB = AgentFactory.create(agentB_type, brainB)
+    agentA = AgentFactory.create(agentA_type, brainA, **paramsA)
+    agentB = AgentFactory.create(agentB_type, brainB, **paramsB)
 
     # Build board
     board = GameState(
@@ -132,8 +131,8 @@ class RoundRobinBenchmark:
                     continue
                 tasks.append(
                     (
-                        (A["name"], A["brain"], A["type"]),
-                        (B["name"], B["brain"], B["type"]),
+                        (A["name"], A["brain"], A["type"], A["params"]),
+                        (B["name"], B["brain"], B["type"], B["params"]),
                         self.max_turns,
                         self.config_path,
                     )

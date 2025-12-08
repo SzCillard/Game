@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from ai.agents.agent_presets import AGENT_PRESET_MAP
 from ai.statistics.benchmark_round_robin import RoundRobinBenchmark
 from utils.path_utils import get_asset_path
 
@@ -70,15 +71,34 @@ def resolve_genome_path(genome_override: str | None) -> Path:
 # ---------------------------------------------------------
 # Build agents list
 # ---------------------------------------------------------
-def build_agents(agent_list, genome_path):
-    return [
-        {
-            "name": agent_type,
-            "brain": str(genome_path),
-            "type": agent_type,
-        }
-        for agent_type in agent_list
-    ]
+def build_agents(agent_types, genome_path):
+    agents = []
+
+    for agent_type in agent_types:
+        # If the agent has presets, expand them
+        if agent_type in AGENT_PRESET_MAP:
+            presets = AGENT_PRESET_MAP[agent_type]
+            for preset_name, preset_params in presets.items():
+                agents.append(
+                    {
+                        "name": preset_name,
+                        "brain": str(genome_path),
+                        "type": agent_type,
+                        "params": preset_params,  # << attach hyperparameters
+                    }
+                )
+        else:
+            # Otherwise treat as single config (NEATAgent only)
+            agents.append(
+                {
+                    "name": agent_type,
+                    "brain": str(genome_path),
+                    "type": agent_type,
+                    "params": {},  # no params
+                }
+            )
+
+    return agents
 
 
 # ---------------------------------------------------------
