@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ai.agents.training_agent_factory import TrainingAgentFactory
+from ai.agents.agent_factory import AgentFactory
 from ai.neat.neat_network import NeatNetwork
 from ai.utils.draft_helper import get_ai_draft_units
 
@@ -82,15 +82,11 @@ class SelfPlaySimulator:
         team2 = [u for u in units if u["team_id"] == 2]
 
         hp1 = sum(u["health"] for u in team1)
-        if hp1 == 0:
-            hp1 = 1
-        hp2 = sum(u["health"] for u in team2)
-        if hp2 == 0:
-            hp2 = 1
 
-        # gets a small value due to division by 0
-        alive1 = len(team1) if len(team1) > 0 else 0.1
-        alive2 = len(team2) if len(team2) > 0 else 0.1
+        hp2 = sum(u["health"] for u in team2)
+
+        alive1 = len(team1)
+        alive2 = len(team2)
 
         return {
             "initial_unit_count_team1": initial_unit_count_team1,
@@ -112,8 +108,8 @@ class SelfPlaySimulator:
         net_a = NeatNetwork.from_genome(genome_a, self.config)
         net_b = NeatNetwork.from_genome(genome_b, self.config)
 
-        agent_a = TrainingAgentFactory.create(agent_type=agent_type, brain=net_a)
-        agent_b = TrainingAgentFactory.create(agent_type=agent_type, brain=net_b)
+        agent_a = AgentFactory.create(agent_type=agent_type, brain=net_a)
+        agent_b = AgentFactory.create(agent_type=agent_type, brain=net_b)
 
         turns_played = 0
 

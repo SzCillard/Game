@@ -78,6 +78,11 @@ class NeatTrainer:
             curr_init_hp_ratio_2 + dmg_inflicted_2 * 10 + survived_initial_ratio_2
         )
 
+        if winner == 1:
+            fitness1 += 2.0
+        elif winner == 2:
+            fitness2 += 2.0
+
         return self.softplus(fitness1), self.softplus(fitness2)
 
     # ============================================================
