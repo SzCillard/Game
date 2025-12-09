@@ -80,21 +80,18 @@ def load_neat_agent(genome_override: str | None, agent):
         else:
             # User gave full path
             genome_path = override_path
-
-        logger.info(f"🔍 Using genome: {genome_path}")
-
     else:
         genome_path = default_path
         logger.info(f"🔍 Using DEFAULT genome: {genome_path}")
 
     config_path = Path(get_asset_path("assets/neat/configs/neat_config.txt"))
-    print(f"✅ Loaded NEAT genome from: {genome_path}")
+
     try:
         brain = NeatNetwork(
             genome_path=str(genome_path),
             config_path=str(config_path),
         )
-        logger.info(f"✅ Loaded NEAT genome from: {genome_path}")
+        logger.info(f"Loaded NEAT genome from: {genome_path}")
         agent = AgentFactory.create(agent, brain)
         return agent
 
