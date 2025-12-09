@@ -43,10 +43,10 @@ class MCTSAgent:
     def __init__(
         self,
         brain: NeatNetwork,
-        dfs_action_sets_limit: int = 200,  # DFS limit for sequence generation
+        dfs_action_sets_limit: int = 400,  # DFS limit for sequence generation
         dfs_branching_limit: int = 20,  # max actions per DFS node
-        max_root_children: int = 8,  # how many root moves to keep
-        iterations: int = 80,  # MCTS iterations per AI move
+        max_root_children: int = 20,  # how many root moves to keep
+        iterations: int = 100,  # MCTS iterations per AI move
         rollout_turns: int = 2,  # how many full turns in a rollout
         c_puct: float = 1.4,  # exploration constant
     ) -> None:
