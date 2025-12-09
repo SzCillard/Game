@@ -26,11 +26,11 @@ def _compute_neat_stats(sim: SimulationAPI, team1_names, team2_names):
     team1 = [u for u in units if u["team_id"] == 1]
     team2 = [u for u in units if u["team_id"] == 2]
 
-    hp1 = sum(u["health"] for u in team1) or 1
-    hp2 = sum(u["health"] for u in team2) or 1
+    hp1 = sum(u["health"] for u in team1)
+    hp2 = sum(u["health"] for u in team2)
 
-    alive1 = len(team1) if len(team1) > 0 else 0.1
-    alive2 = len(team2) if len(team2) > 0 else 0.1
+    alive1 = len(team1)
+    alive2 = len(team2)
 
     max_hp_team1 = sum(UNIT_STATS[n]["health"] for n in team1_names)
     max_hp_team2 = sum(UNIT_STATS[n]["health"] for n in team2_names)
