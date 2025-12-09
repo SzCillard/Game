@@ -38,6 +38,13 @@ def parse_args():
 
     parser.add_argument("--max_workers", type=int, default=4)
     parser.add_argument("--max_turns", type=int, default=30)
+    parser.add_argument(
+        "--repeats",
+        type=int,
+        default=1,
+        help="How many repeated matches per ordered pairing (A→B). "
+        "Total matches = N*(N-1)*repeats.",
+    )
 
     return parser.parse_args()
 
@@ -116,6 +123,7 @@ def main():
         max_turns=args.max_turns,
         workers=args.max_workers,
         config_path=args.config,
+        repeats=args.repeats,
     )
 
     results = bench.run()

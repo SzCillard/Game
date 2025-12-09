@@ -128,16 +128,17 @@ def _run_match_worker(args):
 # 🧪 Round Robin Benchmark Controller
 # ======================================================================
 class RoundRobinBenchmark:
-    def __init__(self, agents, max_turns=30, workers=4, config_path=None):
+    def __init__(self, agents, max_turns=30, workers=4, config_path=None, repeats=1):
         self.config_path = config_path or get_asset_path(
             "assets/neat/configs/neat_config.txt"
         )
         self.agents = agents
         self.max_turns = max_turns
         self.workers = workers
+        self.repeats = repeats
 
     # -------------------------------------------------------------
-    # Create all matchups (A vs B AND B vs A)
+    # Create all matchups (A vs B AND B vs A)*N
     # -------------------------------------------------------------
     def _build_match_list(self):
         tasks = []
@@ -145,14 +146,17 @@ class RoundRobinBenchmark:
             for j, B in enumerate(self.agents):
                 if i == j:
                     continue
-                tasks.append(
-                    (
-                        (A["name"], A["brain"], A["type"], A["params"]),
-                        (B["name"], B["brain"], B["type"], B["params"]),
-                        self.max_turns,
-                        self.config_path,
+
+                # Repeat each A->B match N times
+                for _ in range(self.repeats):
+                    tasks.append(
+                        (
+                            (A["name"], A["brain"], A["type"], A["params"]),
+                            (B["name"], B["brain"], B["type"], B["params"]),
+                            self.max_turns,
+                            self.config_path,
+                        )
                     )
-                )
         return tasks
 
     # -------------------------------------------------------------

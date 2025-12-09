@@ -1,3 +1,0 @@
-agentA,agentB,winner,turns,initial_unit_count_team1,initial_unit_count_team2,alive1,alive2,max_hp_team1,max_hp_team2,hp1,hp2
-NEATAgent,MCTSAgent,1,19,4,4,3,0.1,325,355,102,1
-MCTSAgent,NEATAgent,2,20,4,4,0.1,4,435,320,1,126
