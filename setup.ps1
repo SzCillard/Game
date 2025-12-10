@@ -38,15 +38,23 @@ if ($needPython) {
 
     Remove-Item $installer -Force
 
-    # Update PATH in this session
+    # Update PATH and override python command for this PowerShell session
     $pythonUserPath = "$env:LOCALAPPDATA\Programs\Python\Python311"
     $scriptsPath = "$pythonUserPath\Scripts"
 
-    if (-not ($env:PATH -like "*$pythonUserPath*")) {
-        $env:PATH = "$env:PATH;$pythonUserPath;$scriptsPath"
-    }
+    # Prepend Python 3.11 to PATH (ensures it takes priority over Python 3.12)
+    $env:PATH = "$pythonUserPath;$scriptsPath;$env:PATH"
 
-    Write-Host "Python 3.11 installed."
+    # Override python/python3 aliases inside this session
+    Set-Alias python "$pythonUserPath\python.exe" -Force
+    Set-Alias python3 "$pythonUserPath\python.exe" -Force
+
+    # Verify correct Python is active
+    $pyv = python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"
+    Write-Host "Activated Python version: $pyv"
+
+    Write-Host "Python 3.11 installed and activated."
+
 }
 
 # -------------------------------
