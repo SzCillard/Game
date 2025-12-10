@@ -46,7 +46,6 @@ Write-Host "Python $pyv OK"
 # 2. Install Poetry if missing
 # -------------------------------
 if (-not (Get-Command poetry -ErrorAction SilentlyContinue)) {
-    Write-Host "Poetry not found — installing..."
     (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
 
     $poetryPath = "$env:USERPROFILE\AppData\Roaming\Python\Scripts"
@@ -54,16 +53,11 @@ if (-not (Get-Command poetry -ErrorAction SilentlyContinue)) {
         $env:PATH = $env:PATH + ";" + $poetryPath
     }
 
-    Write-Host "Poetry installed"
-}
-else {
-    Write-Host "Poetry already installed"
 }
 
 # -------------------------------
 # 3. Configure Poetry
 # -------------------------------
-Write-Host "Configuring Poetry..."
 poetry config virtualenvs.in-project true
 
 # -------------------------------
@@ -74,4 +68,3 @@ poetry install
 
 Write-Host ""
 Write-Host "Setup complete!"
-Write-Host "Start the game using:  poetry run game"
