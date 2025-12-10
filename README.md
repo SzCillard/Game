@@ -20,7 +20,12 @@ ______________________________________________________________________
 # 📥 1. Clone the Repository
 
 ```bash
-git clone https://github.com/SzCillard/Game.git && \
+git clone https://github.com/SzCillard/Game.git
+```
+
+Change directory...
+
+```bash
 cd Game
 ```
 
