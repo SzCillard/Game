@@ -10,13 +10,12 @@ echo "---------------------------------------"
 echo "🔍 Checking Python version..."
 python3 --version || { echo "❌ Python3 is not installed."; exit 1; }
 
-PYV=$(python3 - <<'EOF'
-import sys
-print(f"{sys.version_info.major}.{sys.version_info.minor}")
-EOF
-)
+PYV=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 
-if [[ "$PYV" < "3.11" ]]; then
+PY_MAJOR=${PYV%.*}
+PY_MINOR=${PYV#*.}
+
+if (( PY_MAJOR < 3 || PY_MINOR < 11 )); then
     echo "❌ Python 3.11+ required. Current: $PYV"
     exit 1
 fi
@@ -30,6 +29,9 @@ if ! command -v poetry >/dev/null 2>&1 ; then
     echo "📥 Poetry not found — installing Poetry..."
     curl -sSL https://install.python-poetry.org | python3 -
     export PATH="$HOME/.local/bin:$PATH"
+
+    # Optional: Persist PATH change for future shells
+    # echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 else
     echo "✔ Poetry found"
 fi

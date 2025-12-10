@@ -5,15 +5,15 @@ Write-Host "---------------------------------------"
 # 1. Python version check
 # -------------------------------
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ Python is not installed." ; exit 1
+    Write-Host "❌ Python is not installed."
+    exit 1
 }
 
-$pyv = python - << 'EOF'
-import sys
-print(f"{sys.version_info.major}.{sys.version_info.minor}")
-EOF
+$pyv = python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"
 
-if ($pyv -lt "3.11") {
+$major, $minor = $pyv -split "\."
+
+if ($major -lt 3 -or $minor -lt 11) {
     Write-Host "❌ Python 3.11+ required. Current: $pyv"
     exit 1
 }
@@ -26,7 +26,12 @@ Write-Host "✔ Python $pyv OK"
 if (-not (Get-Command poetry -ErrorAction SilentlyContinue)) {
     Write-Host "📥 Poetry not found — installing..."
     (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
-    $env:PATH += ";$env:USERPROFILE\AppData\Roaming\Python\Scripts"
+
+    # Add Poetry to PATH for this session
+    $poetryPath = "$env:USERPROFILE\AppData\Roaming\Python\Scripts"
+    if (-not ($env:PATH -like "*$poetryPath*")) {
+        $env:PATH += ";$poetryPath"
+    }
 } else {
     Write-Host "✔ Poetry found"
 }
