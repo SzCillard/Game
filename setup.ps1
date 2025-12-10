@@ -51,7 +51,7 @@ if (-not (Get-Command poetry -ErrorAction SilentlyContinue)) {
 
     $poetryPath = "$env:USERPROFILE\AppData\Roaming\Python\Scripts"
     if (-not ($env:PATH -like "*$poetryPath*")) {
-        $env:PATH = "$env:PATH;$poetryPath"
+        $env:PATH = $env:PATH + ";" + $poetryPath
     }
 
     Write-Host "Poetry installed"
