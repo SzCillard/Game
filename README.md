@@ -20,11 +20,9 @@ ______________________________________________________________________
 # 📥 1. Clone the Repository
 
 ```bash
-git clone https://github.com/SzCillard/Game.git
-cd commanders-arena
+git clone https://github.com/SzCillard/Game.git && \
+cd Game
 ```
-
-Replace `YOURNAME` with your actual GitHub username.
 
 ______________________________________________________________________
 
@@ -35,13 +33,13 @@ ______________________________________________________________________
 Run the included installation script:
 
 ```bash
-chmod +x setup.sh
+chmod +x setup.sh && \
 ./setup.sh
 ```
 
 This script will:
 
-- Verify Python 3.11+
+- Verify Python 3.11
 - Install Poetry (if missing)
 - Configure Poetry to use a project-local `.venv`
 - Install all dependencies
@@ -53,6 +51,7 @@ ______________________________________________________________________
 Run the setup script:
 
 ```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser; `
 ./setup.ps1
 ```
 
@@ -95,10 +94,21 @@ ______________________________________________________________________
 
 If you prefer not to use the setup script:
 
+**Linux / macOS:**
+
 ```bash
-pip install poetry
-poetry config virtualenvs.in-project true
-poetry install
+pip install poetry && \
+poetry config virtualenvs.in-project true && \
+poetry install && \
+poetry run game
+```
+
+**Windows (PowerShell):**
+
+```powershell
+pip install poetry; `
+poetry config virtualenvs.in-project true; `
+poetry install; `
 poetry run game
 ```
 
