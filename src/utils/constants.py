@@ -120,8 +120,8 @@ STARTING_FUNDS = 100  # starting funds per player
 EFFECTIVENESS = {
     "Archer": {"Swordsman": 1.0, "Horseman": 0.9, "Spearman": 1.0},
     "Swordsman": {"Archer": 1.0, "Horseman": 1.0, "Spearman": 1.0},
-    "Horseman": {"Archer": 1.2, "Swordsman": 1.1, "Spearman": 0.8},
-    "Spearman": {"Archer": 1.0, "Swordsman": 0.9, "Horseman": 1.3},
+    "Horseman": {"Archer": 1.2, "Swordsman": 1.1, "Spearman": 0.9},
+    "Spearman": {"Archer": 1.0, "Swordsman": 0.9, "Horseman": 1.1},
 }
 
 HEALTH_INFLUENCE = 0.9

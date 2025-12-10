@@ -263,7 +263,3 @@ def calculate_damage(attacker, defender, game_state=None):
 
     # Always at least 1 damage if it connects
     return max(1, int(final_damage))
-
-    # ------------------------------
-    # Image Loading
-    # ------------------------------
