@@ -20,7 +20,7 @@ ______________________________________________________________________
 # 📥 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOURNAME/commanders-arena.git
+git clone https://github.com/SzCillard/Game.git
 cd commanders-arena
 ```
 
