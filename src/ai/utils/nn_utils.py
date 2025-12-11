@@ -224,8 +224,9 @@ def encode_state(game_state: dict[str, Any], team_id: int) -> np.ndarray:
     # ------------------------------------------------------------------
     # FINAL FEATURE VECTOR
     # ------------------------------------------------------------------
-    # 29 features + comp(8)
+    # 30 features + comp(8)
     features = [
+        float(team_id),
         # HP global
         ally_hp_pct,
         enemy_hp_pct,
