@@ -68,11 +68,11 @@ After installation:
 poetry run game
 ```
 
-This launches the Commanders’ Arena main menu.
+This launches the Commanders’ Arena with an agent called **"NEATAgent"**.
 
-❗️IMPORTANT❗️
+❗️**IMPORTANT**❗️
 
-Try out "MCTSAgent" agent as well please!!!
+Try out **"MCTSAgent"** agent as well please!!!
  
 Run this:
 
