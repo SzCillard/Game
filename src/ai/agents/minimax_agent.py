@@ -6,7 +6,7 @@ from typing import Any
 
 from ai.neat.neat_network import NeatNetwork
 from ai.planning.action_planning import ActionPlannerReversible
-from ai.utils.nn_utils import encode_state
+from ai.utils.nn_utils import encode_state, encode_state_old
 from api.simulation_api import SimulationAPI
 from utils.logging import logger
 
@@ -58,7 +58,7 @@ class MinimaxAgent:
     # ----------------------------------------------------------------------
     def _eval_snapshot(self, snapshot: dict, team_id: int) -> float:
         """Evaluate board snapshot with NEAT brain for given team_id."""
-        state = encode_state(snapshot, team_id)
+        state = encode_state_old(snapshot, team_id)
         return float(self.brain.predict(state)[0])
 
     # ----------------------------------------------------------------------

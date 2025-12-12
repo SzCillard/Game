@@ -5,13 +5,13 @@ pop_size = 30
 reset_on_extinction   = False
 
 [DefaultGenome]
-num_inputs            = 38
+num_inputs            = 40
 num_outputs           = 1
 num_hidden            = 20
 feed_forward          = True
-activation_default    = relu
+activation_default    = softplus
 activation_mutate_rate= 0.0
-activation_options    = relu
+activation_options    = softplus
 aggregation_default   = sum
 aggregation_mutate_rate=0.0
 aggregation_options   = sum

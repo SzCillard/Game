@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from ai.neat.neat_network import NeatNetwork
 from ai.planning.action_planning import ActionPlannerReversible
-from ai.utils.nn_utils import encode_state
+from ai.utils.nn_utils import encode_state, encode_state_old
 from api.simulation_api import SimulationAPI
 from utils.logging import logger
 
@@ -75,7 +75,7 @@ class MCTSAgent:
     # NEAT evaluation
     # ----------------------------------------------------------------------
     def _eval_snapshot(self, snapshot: dict, team_id: int) -> float:
-        state = encode_state(snapshot, team_id)
+        state = encode_state_old(snapshot, team_id)
         return float(self.brain.predict(state)[0])
 
     # ----------------------------------------------------------------------

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ai.neat.neat_network import NeatNetwork
-from ai.utils.nn_utils import encode_state
+from ai.utils.nn_utils import encode_state, encode_state_old
 
 if TYPE_CHECKING:
     pass
@@ -35,7 +35,7 @@ class NeatAgent:
     # ------------------------------------------------------------------
 
     def _eval(self, snapshot, team_id):
-        state = encode_state(snapshot, team_id)
+        state = encode_state_old(snapshot, team_id)
         return float(self.brain.predict(state)[0])
 
     def execute_next_actions(self, game_api, team_id):
