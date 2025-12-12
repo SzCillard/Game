@@ -1,7 +1,9 @@
 # statistics/benchmark_round_robin.py
 from __future__ import annotations
 
+from copy import deepcopy
 import csv
+import json
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
@@ -14,6 +16,7 @@ from api.simulation_api import SimulationAPI
 from backend.board import GameState, create_random_map
 from utils.constants import UNIT_STATS, TeamType
 from utils.path_utils import get_asset_path
+import configparser
 
 
 # ======================================================================
@@ -128,10 +131,11 @@ def _run_match_worker(args):
 # 🧪 Round Robin Benchmark Controller
 # ======================================================================
 class RoundRobinBenchmark:
-    def __init__(self, agents, max_turns=30, workers=4, config_path=None, repeats=1):
+    def __init__(self, genome_name:str, agents, max_turns=30, workers=4, config_path=None, repeats=1):
         self.config_path = config_path or get_asset_path(
             "assets/neat/configs/neat_config.txt"
         )
+        self.genome_name=genome_name
         self.agents = agents
         self.max_turns = max_turns
         self.workers = workers
@@ -219,6 +223,37 @@ class RoundRobinBenchmark:
         print(f"📄 Saved CSV → {final_path}")
         return str(final_path)
 
+    def save_metadata_json(self, path=None):
+        """
+        Save benchmark metadata next to the CSV file.
+        """
+        # --- Determine project root (src/ai/statistics/...) ---
+        project_root = Path(__file__).resolve().parents[3]
+        # /home/cillard/projects/Game/
+
+        results_dir = project_root / "src/ai/statistics/round_robin_results"
+        results_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"round_robin_{timestamp}.json"
+
+        final_path = results_dir / filename
+
+        metadata = {
+            "timestamp": timestamp,
+            "benchmark": {
+                "max_turns": self.max_turns,
+                "repeats": self.repeats,
+                "workers": self.workers,
+            },
+            "agents": deepcopy(self.agents),
+            "neat": extract_neat_metadata(self.config_path),
+        }
+
+        with open(final_path, "w") as f:
+            json.dump(metadata, f, indent=4)
+
+        print(f"🧾 Saved metadata JSON → {final_path}")
     # -------------------------------------------------------------
     # Winrate summary
     # -------------------------------------------------------------
@@ -248,3 +283,21 @@ class RoundRobinBenchmark:
             }
             for agent, v in table.items()
         }
+    
+
+def extract_neat_metadata(config_path: str) -> dict:
+    """
+    Extract minimal NEAT metadata needed for benchmarking reproducibility.
+    """
+    parser = configparser.ConfigParser()
+    parser.read(config_path)
+
+    return {
+        "population_size": parser.getint("NEAT", "pop_size"),
+        "num_inputs": parser.getint("DefaultGenome", "num_inputs"),
+        "activation_function": parser.get(
+            "DefaultGenome", "activation_default"
+        ),
+    }
+
+

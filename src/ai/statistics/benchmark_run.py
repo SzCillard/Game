@@ -120,6 +120,7 @@ def main():
 
     bench = RoundRobinBenchmark(
         agents=agents,
+        genome_name=args.genome,
         max_turns=args.max_turns,
         workers=args.max_workers,
         config_path=args.config,
@@ -128,7 +129,7 @@ def main():
 
     results = bench.run()
     bench.save_csv(results)
-
+    bench.save_metadata_json()
     summary = bench.summarize(results)
 
     print("\n=== SUMMARY ===")
