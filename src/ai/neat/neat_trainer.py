@@ -58,6 +58,9 @@ class NeatTrainer:
     def softplus(self, x, beta=1.0):
         return np.log1p(np.exp(-abs(beta * x))) + max(beta * x, 0)
 
+    def relu(self, x):
+        return np.maximum(x, 0)
+
     def compute_fitness(self, winner, played_turns, max_turns, stats):
         # --- 1. HP preservation & damage dealt ---
         curr_init_hp_ratio_1 = stats["hp1"] / stats["max_hp_team1"]
@@ -77,13 +80,15 @@ class NeatTrainer:
         fitness2 = (
             curr_init_hp_ratio_2 + dmg_inflicted_2 * 10 + survived_initial_ratio_2
         )
-
+        
+        """
         if winner == 1:
             fitness1 += 2.0
         elif winner == 2:
             fitness2 += 2.0
+        """
 
-        return self.softplus(fitness1), self.softplus(fitness2)
+        return self.relu(fitness1), self.relu(fitness2)
 
     # ============================================================
     # ⚔️ Match Execution (worker-side)
