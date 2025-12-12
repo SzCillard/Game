@@ -17,7 +17,7 @@ After cloning the repository, the game can be installed and played within minute
 
 ______________________________________________________________________
 
-# 📥 1. Clone the Repository
+# 📥 1. Clone the Repository or Download the ZIP
 
 ```bash
 git clone https://github.com/SzCillard/Game.git
@@ -68,14 +68,17 @@ After installation:
 poetry run game
 ```
 
-or on PowerShell:
-
-```powershell
-poetry run game
-```
-
 This launches the Commanders’ Arena main menu.
 
+❗️IMPORTANT❗️
+
+Try out "MCTSAgent" agent as well please!!!
+ 
+Run this:
+
+```bash
+poetry run game --agent MCTSAgent
+```
 ______________________________________________________________________
 
 # 🕹 Gameplay Guide
