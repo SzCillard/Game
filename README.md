@@ -62,6 +62,9 @@ ______________________________________________________________________
 
 # 🎮 3. Running the Game
 
+Please fill the survey about the game once 
+you tested the two agent: https://forms.gle/Z14zq54Q93AYP85C6
+
 After installation:
 
 ```bash
