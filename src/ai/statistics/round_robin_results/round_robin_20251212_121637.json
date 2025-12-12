@@ -1,0 +1,87 @@
+{
+    "timestamp": "20251212_121637",
+    "benchmark": {
+        "max_turns": 30,
+        "repeats": 2,
+        "workers": 4
+    },
+    "agents": [
+        {
+            "name": "MCTS_default",
+            "brain": "D:\\University\\Szakdoga\\Game\\assets\\neat\\genomes\\best_genome_NEATAgent_G30_P30_O5_20251211_1722.pkl",
+            "type": "MCTSAgent",
+            "params": {
+                "dfs_action_sets_limit": 250,
+                "dfs_branching_limit": 16,
+                "max_root_children": 12,
+                "iterations": 800,
+                "rollout_turns": 2,
+                "c_puct": 1.4
+            }
+        },
+        {
+            "name": "MCTS_fast",
+            "brain": "D:\\University\\Szakdoga\\Game\\assets\\neat\\genomes\\best_genome_NEATAgent_G30_P30_O5_20251211_1722.pkl",
+            "type": "MCTSAgent",
+            "params": {
+                "dfs_action_sets_limit": 150,
+                "dfs_branching_limit": 10,
+                "max_root_children": 8,
+                "iterations": 300,
+                "rollout_turns": 2,
+                "c_puct": 1.4
+            }
+        },
+        {
+            "name": "MCTS_deep",
+            "brain": "D:\\University\\Szakdoga\\Game\\assets\\neat\\genomes\\best_genome_NEATAgent_G30_P30_O5_20251211_1722.pkl",
+            "type": "MCTSAgent",
+            "params": {
+                "dfs_action_sets_limit": 400,
+                "dfs_branching_limit": 20,
+                "max_root_children": 16,
+                "iterations": 1500,
+                "rollout_turns": 3,
+                "c_puct": 1.2
+            }
+        },
+        {
+            "name": "NEATAgent",
+            "brain": "D:\\University\\Szakdoga\\Game\\assets\\neat\\genomes\\best_genome_NEATAgent_G30_P30_O5_20251211_1722.pkl",
+            "type": "NEATAgent",
+            "params": {}
+        },
+        {
+            "name": "Minimax_default",
+            "brain": "D:\\University\\Szakdoga\\Game\\assets\\neat\\genomes\\best_genome_NEATAgent_G30_P30_O5_20251211_1722.pkl",
+            "type": "MinimaxAgent",
+            "params": {
+                "depth": 3,
+                "child_limit": 3
+            }
+        },
+        {
+            "name": "Minimax_deep",
+            "brain": "D:\\University\\Szakdoga\\Game\\assets\\neat\\genomes\\best_genome_NEATAgent_G30_P30_O5_20251211_1722.pkl",
+            "type": "MinimaxAgent",
+            "params": {
+                "depth": 4,
+                "child_limit": 3
+            }
+        },
+        {
+            "name": "Minimax_wide",
+            "brain": "D:\\University\\Szakdoga\\Game\\assets\\neat\\genomes\\best_genome_NEATAgent_G30_P30_O5_20251211_1722.pkl",
+            "type": "MinimaxAgent",
+            "params": {
+                "depth": 3,
+                "child_limit": 4
+            }
+        }
+    ],
+    "neat": {
+        "population_size": 30,
+        "num_inputs": 38,
+        "activation_function": "relu"
+    }
+}
