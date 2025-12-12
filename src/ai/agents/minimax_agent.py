@@ -25,10 +25,10 @@ class MinimaxAgent:
     def __init__(
         self,
         brain: NeatNetwork,
-        depth: int = 2,
-        dfs_action_sets_limit: int = 200,
+        depth: int = 3,
+        dfs_action_sets_limit: int = 800,
         dfs_branching_limit: int = 12,
-        child_limit: int = 6,
+        child_limit: int = 3,
     ) -> None:
         self.depth = depth
         self.child_limit = child_limit
