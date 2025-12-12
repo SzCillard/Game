@@ -16,9 +16,9 @@ class NeatAgent:
     def __init__(
         self,
         brain: NeatNetwork,
-        dfs_action_sets_limit=500,
+        dfs_action_sets_limit=1500,
         dfs_branching_limit=30,
-        exploration_rate=0.05,
+        exploration_rate=0.00,
     ):
         self.brain = brain
         self.planner = ActionPlannerReversible(
